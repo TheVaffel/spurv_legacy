@@ -1,0 +1,24 @@
+capability Shader
+ext_inst_import imported "GLSL.std.450"
+memory_model Logical GLSL450
+entry_point Fragment main "main" outColor color
+execution_mode main OriginUpperLeft
+decorate outColor Location 0
+decorate color Location 0
+
+type_void void
+type_function function_void void
+type_float float 32
+type_vector  vec4 float 4
+type_pointer ptr_output_vec4 Output vec4
+type_pointer ptr_input_vec4 Input vec4
+
+variable ptr_output_vec4 outColor Output
+variable ptr_input_vec4 color Input
+
+function void main None function_void
+label main_block
+load  vec4 temp color
+store outColor temp
+return
+function_end
