@@ -17,7 +17,7 @@ header = '%{\n' + \
 footer = '{DIGIT}+  { return NUMBER;}\n' + \
 '\\"(\\\\.|[^\\\\"])*\\" { return STRING;}\n' + \
 '{LETTER}({LETTER}|{DIGIT})* { return IDENTIFIER;}\n' + \
-'.  {\n\tprintf("Unrecognized token %s\\n", yytext[0]);\n}\n' + \
+'.  {\n\tprintf("Unrecognized token %s\\n", yytext);\n}\n' + \
 '%%'
 
 spec_dir = 'spirv_spec/'

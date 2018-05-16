@@ -19,11 +19,11 @@ void print_value_chain(value_t* value){
     if(value->type == VALUE_TYPE_STRING){
       printf("%s ", value->string);
     }else if(value->type == VALUE_TYPE_NUMBER){
-      printf("%d ", value->number);
+      printf("%ld ", value->number);
     }else if(value->type == VALUE_TYPE_IDENTIFIER){
       printf("%s ", value->string);
     }else if(value->type == VALUE_TYPE_OPCODE){
-      printf("%d ", value->number);
+      printf("%ld ", value->number);
     }else{
       printf("<Value printout of this element not implemented> ");
     }
