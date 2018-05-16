@@ -10,9 +10,7 @@ header = '%{\n' + \
 '%%\n' + \
 '[ \\t\\r\\v] ; // Whitespace\n' + \
 '";".* ; // Line comments\n' + \
-'\\n+ {  return NEWLINE;}\n' 
-#'<INITIAL><<EOF>> {printf("returning EOF\\n"); BEGIN(LASTEND); return NEWLINE;}\n' + \
-#'<LASTEND><<EOF>> {printf("Returning last EOF\\n"); return 0;}\n'
+'\\n+ {  return NEWLINE;}\n'
 
 footer = '{DIGIT}+  { return NUMBER;}\n' + \
 '\\"(\\\\.|[^\\\\"])*\\" { return STRING;}\n' + \
