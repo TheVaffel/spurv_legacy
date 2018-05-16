@@ -3,11 +3,6 @@
 #include <stdio.h>
 #include <string.h>
 
-extern int yylineno;
-extern char yytext[];
-extern int yylex (void);
-extern int yyerror(const char* error);
-extern FILE* yyin;
 
 typedef enum {
   VALUE_TYPE_STRING,

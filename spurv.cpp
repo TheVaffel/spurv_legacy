@@ -7,6 +7,9 @@
 #include <string> // std::string
 #include <stdexcept> // std::out_of_range
 
+
+extern FILE* yyin;
+
 value_t* get_new_value(){
   value_t* value = (value_t*)malloc(sizeof(value_t));
   value->next = NULL;

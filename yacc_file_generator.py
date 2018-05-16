@@ -11,7 +11,7 @@ opcodes = opcode_file.read().split()
 enums = enum_file.read().split()
 enum_values = enum_value_file.read().split()
 
-print('%{\n\t#include <stdio.h>\n#include <spurv.h>\n#define YYSTYPE value_t*\n%}')
+print('%{\n\t#include <stdio.h>\n#include <spurv_compiler.h>\n#define YYSTYPE value_t*\n%}')
 
 print('\n%token NEWLINE')
 print('\n%token MAYBE_NEWLINE')
