@@ -10,7 +10,8 @@ header = '%{\n' + \
 '%%\n' + \
 '[ \\t\\r\\v] ; // Whitespace\n' + \
 '";".* ; // Line comments\n' + \
-'\\n+ {  return NEWLINE;}\n'
+'\\n+ {  return NEWLINE;}\n' + \
+'= {return EQUALS;}\n'
 
 footer = '{DIGIT}+  { return NUMBER;}\n' + \
 '\\"(\\\\.|[^\\\\"])*\\" { return STRING;}\n' + \

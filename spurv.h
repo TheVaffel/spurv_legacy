@@ -18,6 +18,7 @@ typedef struct v {
     char* string;
     int64_t number;
   };
+  uint64_t operation_number; // Not the same as opCode, just an internal enumerationq
 } value_t;
 
 value_t* get_new_value();
@@ -28,6 +29,8 @@ void add_string(const char* string);
 
 void add_opcode(value_t* opcode);
 void register_identifier(const char* string);
+
+int put_into_chain(int put_i, value_t* put_val, value_t* parent);
 
 #include <vector>
 void parse_spurv_file(const char* name, std::vector<uint32_t>& spirv);

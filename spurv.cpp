@@ -16,6 +16,24 @@ value_t* get_new_value(){
   return value;
 }
 
+// To insert an operand somewhere in the operand chain
+// The parent value should be the value_t* for the instruction at the upper-most call
+
+// NB! List is backwards!
+int put_into_chain(int put_i, value_t* put_val, value_t* parent){
+  if(!parent){ // We have reached the first element
+    return 0;
+  }
+
+  int res = put_into_chain(put_i, put_val, parent->next);
+  if(res == put_i){
+    put_val->next = parent->next;
+    parent->next  = put_val;
+  }
+
+  return res + 1;
+}
+
 void print_value_chain(value_t* value){
   if(value){
     print_value_chain(value->next);
