@@ -6,8 +6,6 @@ execution_mode main OriginUpperLeft
 decorate outColor Location 0
 decorate color Location 0
 
-void = type_void
-function_void = type_function void
 float = type_float 32
 vec4 = type_vector  float 4
 ptr_output_vec4 = type_pointer Output vec4
@@ -16,7 +14,7 @@ ptr_input_vec4 = type_pointer Input vec4
 outColor = variable ptr_output_vec4 Output
 color = variable ptr_input_vec4 Input
 
-function void main None function_void
+function void main None f_void
 label main_block
 temp = load  vec4  color
 store outColor temp
