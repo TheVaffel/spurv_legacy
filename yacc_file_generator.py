@@ -13,11 +13,14 @@ enums = enum_file.read().split()
 enum_values = enum_value_file.read().split()
 result_indices = result_index_file.read().split()
 
+
 print('%{\n\t#include <stdio.h>\n#include <spurv_compiler.h>\n#define YYSTYPE value_t*\n')
 print('int result_indices[] = {', end='')
 for i in result_indices:
     print(str(i) + ',' , end = '')
-print('};\n%}')
+print('};\n')
+print('void register_identifier_definition(value_t* opcode);\n')
+print('%}')
 
 print('\n%token NEWLINE')
 print('\n%token MAYBE_NEWLINE')
@@ -38,9 +41,9 @@ print('\n%%\n')
 print('program: instruction_list {} | instruction_list NEWLINE {};')
 print('instruction_list: instruction_list NEWLINE instruction {} | instruction {} ;')
 print('instruction: opcode argument_list { \
-$1->next = $2; \n//print_value_chain($2);printf("\\n");\n\
+$1->next = $2; register_identifier_definition($1);\n//print_value_chain($2);printf("\\n");\n\
 } | identifier_reference EQUALS opcode argument_list { \
-   $3->next = $4; int ind = result_indices[$3->operation_number]; if(put_into_chain(ind, $1, $3) <= ind){printf("Not enough arguments in assignment at line %d\\n", yylineno-1);exit(-1);} \
+   $3->next = $4; int ind = result_indices[$3->operation_number]; if(put_into_chain(ind, $1, $3) <= ind){printf("Not enough arguments in assignment at line %d\\n", yylineno-1);exit(-1);} register_identifier_definition($3);\
 };')
 print('argument_list: argument_list argument {\n\t $$ = $2; $$->next = $1;} | { $$ = NULL;} ;')
 
@@ -49,22 +52,19 @@ print('\nargument:')
 for i in range(len(enums)):
     print('E_' + enums[i] \
           + ' {\n//printf("Enum: ' + enums[i] + '\\n");\
-               \nvalue_t* v = get_new_value();\n\tv->type = VALUE_TYPE_NUMBER;\n\tv->number = ' + enum_values[i] +';\n\t$$ = v;\n}')
+               \n$$ = construct_value_number(' + enum_values[i] + ', NULL);\n}')
     print('|')
-print('NUMBER {value_t* v = get_new_value(); \n\tv->type = VALUE_TYPE_NUMBER;\n\
-               \tv->number = strtol(yytext, NULL, 10); \n//printf("Number %d\\n", v->number);\n $$ = v; }\n|');
-print('STRING {value_t* v = get_new_value(); \n\tv->type = VALUE_TYPE_STRING;\n\
-               \tv->string = (char*)malloc(strlen(yytext - 1)); memcpy(v->string, yytext + 1, strlen(yytext) - 2);\
-               v->string[strlen(yytext) - 2] = 0; \n//printf("String %s\\n", v->string); \n$$ = v;}\n|');
+print('NUMBER {$$ = construct_value_number(strtol(yytext,NULL, 10), NULL);}\n|');
+print('STRING {\tchar* c = (char*)malloc(strlen(yytext - 1)); memcpy(c, yytext + 1, strlen(yytext) - 2);\
+               c[strlen(yytext) - 2] = 0; \n$$ = construct_value_string(c, NULL);}\n|');
 print('identifier_reference {$$ = $1;};')
-print('identifier_reference: IDENTIFIER {\n\tvalue_t* v = get_new_value(); \n\tv->type = VALUE_TYPE_IDENTIFIER;\n\tv->string = strdup(yytext);\
-                   \n//printf("Identifier %s\\n", v->string); \n$$ = v; register_identifier(v->string);}\n');
+print('identifier_reference: IDENTIFIER {\n\t$$ = construct_value_identifier(strdup(yytext), NULL); register_identifier($$->string);}\n');
 print(';\n')
 
 print('\n')
 print('opcode:\n')
 for i in range(len(tokens)):
-    print(tokens[i] + ' {value_t* v = get_new_value();\n\tv->type = VALUE_TYPE_OPCODE;\n\tv->number = ' + opcodes[i] + '; $$ = v; v->operation_number = ' + str(i) + ';add_opcode(v);\n //printf("Token: ' + tokens[i] + '\\n")\n;}');
+    print(tokens[i] + ' {$$ = construct_value_opcode(' + opcodes[i] + ', ' + str(i) + ', NULL); add_opcode($$);\n }');
     if i != len(tokens) - 1:
         print('|')
 
@@ -74,7 +74,8 @@ print(';\n')
 print('%%\n')
 
 print('int yyerror (const char *error) {\n\tfprintf(stderr, "%s on line %d\\n", error, yylineno);\n\texit(-1);\n}');
-
+print('void register_identifier_definition(value_t* opcode){\n\tif(result_indices[opcode->operation_number] >= 0){\n\t\t \
+      value_t* v;\n\t\tget_value_in_chain(&v, result_indices[opcode->operation_number], opcode);\n\t\tadd_identifier_definition(v->string); \n\t}\n}')
 enum_file.close();
 enum_value_file.close();
 

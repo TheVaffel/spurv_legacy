@@ -1,4 +1,4 @@
-OBJS = spurv.o lex.yy.o y.tab.o
+OBJS = spurv.o lex.yy.o y.tab.o implicit_types.o
 
 libspurv.a: $(OBJS)
 	ar rvs $@ $^ 
