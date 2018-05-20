@@ -35,7 +35,7 @@ void implicit_type_init(){
     implicit_types.insert(p);
     for(int i = 0; i < num_pointer_versions; i++){
       std::string pointer_name = std::string("p_") + p.first + std::string("_") + pointer_dirs[i];
-      implicit_types.insert({pointer_name, {32, p.first.c_str(), 2, {i, -1}}});
+      implicit_types.insert({pointer_name, {32, strdup(p.first.c_str()), 2, {i, -1}}});
     }
   }
 
@@ -51,9 +51,24 @@ bool is_implicit_type(std::string identifier){
 
 void add_implicit_identifier(std::string identifier){
   type_definition_data d = implicit_types[identifier];
-  if(d.dependency && !is_identifier_defined(d.dependency)){
-    add_implicit_identifier(d.dependency);
+  if(d.dependency){
+    bool dependency_will_be_explicitly_defined = is_identifier_to_be_defined(d.dependency);
+    bool dependency_is_defined = is_identifier_defined(d.dependency);
+    if((!dependency_will_be_explicitly_defined)
+       && !dependency_is_defined){
+
+      add_implicit_identifier(d.dependency);
+
+    }else if(!dependency_is_defined){
+      printf("Defining dependencies of an implicitly defined type not allowed after use of implicit type (you cannot define %s after reference of %s)\n", d.dependency, identifier.c_str());
+      exit(-1);
+    }
   }
+
+  if(!is_identifier_referenced(identifier.c_str())){
+    register_identifier(identifier.c_str());
+  }
+  
 
   int size = d.num_additional_arguments + 2;
   

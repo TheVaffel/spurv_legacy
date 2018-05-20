@@ -75,7 +75,7 @@ print('%%\n')
 
 print('int yyerror (const char *error) {\n\tfprintf(stderr, "%s on line %d\\n", error, yylineno);\n\texit(-1);\n}');
 print('void register_identifier_definition(value_t* opcode){\n\tif(result_indices[opcode->operation_number] >= 0){\n\t\t \
-      value_t* v;\n\t\tget_value_in_chain(&v, result_indices[opcode->operation_number], opcode);\n\t\tadd_identifier_definition(v->string); \n\t}\n}')
+      value_t* v;\n\t\tget_value_in_chain(&v, result_indices[opcode->operation_number], opcode);\n\t\tv->type = VALUE_TYPE_IDENTIFIER_DEFINITION;add_future_identifier_definition(v->string); \n\t}\n}')
 enum_file.close();
 enum_value_file.close();
 

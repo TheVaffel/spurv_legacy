@@ -110,6 +110,7 @@ void add_opcode(value_t* opcode){
 }
 
 // Used to locate identifiers to define implicitly (supporting e.g. void, float etc..)
+std::set<std::string> to_be_defined_identifiers;
 std::set<std::string> defined_identifiers;
 
 void add_identifier_definition(const char* str){
@@ -118,6 +119,14 @@ void add_identifier_definition(const char* str){
 
 bool is_identifier_defined(const char* str){
   return defined_identifiers.find(str) != defined_identifiers.end();
+}
+
+void add_future_identifier_definition(const char* str){
+  to_be_defined_identifiers.insert(str);
+}
+
+bool is_identifier_to_be_defined(const char* str){
+  return to_be_defined_identifiers.find(str) != to_be_defined_identifiers.end();
 }
 
 std::map<std::string, uint32_t> identifiers;
@@ -131,6 +140,10 @@ void register_identifier(const char* string){
 
 int get_identifier_number(const char* string){
   return identifiers[string];
+}
+
+bool is_identifier_referenced(const char* str){
+  return identifiers.find(str) != identifiers.end();
 }
 
 std::vector<uint32_t>* binary;
@@ -184,19 +197,16 @@ void output_binary(value_t* val, int* size){
       add_int_to_binary((uint32_t)val->number);
       
     }else if(val->type == VALUE_TYPE_IDENTIFIER){
-      
       *size += 1;
-      std::string str = std::string(val->string);
-      try{
-	uint32_t rs = identifiers.at(str);
-      }catch(std::out_of_range){
-	exit(-1);
-      }
-      add_int_to_binary(identifiers[str]);
+      add_int_to_binary(identifiers[val->string]);
       
     }else if(val->type == VALUE_TYPE_OPCODE){
       // Handle this separately, as this will be on the start of the chain and
       // everything else is backwards
+    }else if(val->type == VALUE_TYPE_IDENTIFIER_DEFINITION){
+      *size += 1;
+      add_identifier_definition(val->string);
+      add_int_to_binary(identifiers[val->string]);
     }
   }
 }
@@ -208,7 +218,8 @@ void declare_necessary_implicit_types(){
 
   for(; map_it != identifiers.end(); map_it++){
     //printf("Identifier %s has num %d\n", (*map_it).first.c_str(), (*map_it).second);
-    if(!is_identifier_defined((*map_it).first.c_str())){
+    if(!is_identifier_to_be_defined((*map_it).first.c_str()) &&
+       !is_identifier_defined((*map_it).first.c_str())){
       if(is_implicit_type((*map_it).first.c_str())){
 	add_implicit_identifier((*map_it).first);
       }else{
@@ -231,7 +242,8 @@ void parse_spurv_file(const char* file_name, std::vector<uint32_t>& spirv){
   add_int_to_binary(0x07230203); // Magic Number
   add_int_to_binary(0x00010000); // Version Number (1.0)
   add_int_to_binary(0x123); // Generator's Magic Number. The one used is not officially registered
-  add_int_to_binary(identifier_num); // Max ID bound, this is at least a minimum
+  int bound_index = binary->size();
+  add_int_to_binary(0); // Max ID bound, we will set this in the end, when implicit types are defined
   add_int_to_binary(0x0); // Reserved for instruction schema
 
   int declare = 0;
@@ -252,7 +264,11 @@ void parse_spurv_file(const char* file_name, std::vector<uint32_t>& spirv){
 
     // Include size
     (*binary)[base] |= size << 16;
-
-    
   }
+
+  (*binary)[bound_index] = identifier_num;
+
+  /*for(int i = 0; i < binary->size(); i++){
+    printf("%d\n", (*binary)[i]);
+    }*/
 }
