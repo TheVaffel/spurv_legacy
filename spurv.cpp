@@ -1,4 +1,4 @@
-#include <spurv.h>
+#include <spurv_compiler.h>
 #include <y.tab.hpp>
 #include <implicit_types.hpp>
 

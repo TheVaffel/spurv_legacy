@@ -1,5 +1,5 @@
 #include <implicit_types.hpp>
-#include <spurv.h>
+#include <spurv_compiler.h>
 
 std::map<std::string, type_definition_data> implicit_types;
 
