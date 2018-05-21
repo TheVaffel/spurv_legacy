@@ -212,7 +212,6 @@ void output_binary(value_t* val, int* size){
 }
 
 void declare_necessary_implicit_types(){
-  implicit_type_init();
   
   std::map<std::string, unsigned int>::iterator map_it = identifiers.begin();
 
@@ -229,46 +228,84 @@ void declare_necessary_implicit_types(){
   }
 }
 
-void parse_spurv_file(const char* file_name, std::vector<uint32_t>& spirv){
+void destroy_value_tree(value_t* v){
+  if(v){
+    destroy_value_tree(v->next);
+    if(v->type == VALUE_TYPE_STRING ||
+       v->type == VALUE_TYPE_IDENTIFIER ||
+       v->type == VALUE_TYPE_IDENTIFIER_DEFINITION){
+      free(v->string);
+    }
+    free(v);
+  }
+}
 
-  yyin = fopen(file_name, "r");
-  
-  yyparse();
+static int should_reset = 0;
 
-  fclose(yyin);
-  
-  binary = &spirv;
-
-  add_int_to_binary(0x07230203); // Magic Number
-  add_int_to_binary(0x00010000); // Version Number (1.0)
-  add_int_to_binary(0x123); // Generator's Magic Number. The one used is not officially registered
-  int bound_index = binary->size();
-  add_int_to_binary(0); // Max ID bound, we will set this in the end, when implicit types are defined
-  add_int_to_binary(0x0); // Reserved for instruction schema
-
-  int declare = 0;
+void reset_parser(){
+  should_reset = 0;
   
   for(int i = 0; i < opcodes.size(); i++){
-    if(opcodes[i]->number == 71){ // OpExecutionMode, after this is set, we can declare types
-      declare = 1;
-    }else if(declare){
-      declare_necessary_implicit_types();
-      declare = 0;
+    destroy_value_tree(opcodes[i]);
+  }
+  opcodes.clear();
+}
+
+
+namespace spurv{
+
+  void parse_spurv_file(const char* file_name, std::vector<uint32_t>& spirv){
+
+    if(should_reset){
+      reset_parser();
+    }
+    should_reset = 1;
+    
+    yyin = fopen(file_name, "r");
+  
+    yyparse();
+
+    fclose(yyin);
+  
+    binary = &spirv;
+
+    add_int_to_binary(0x07230203); // Magic Number
+    add_int_to_binary(0x00010000); // Version Number (1.0)
+    add_int_to_binary(0x123); // Generator's Magic Number. The one used is not officially registered
+    int bound_index = binary->size();
+    add_int_to_binary(0); // Max ID bound, we will set this in the end, when implicit types are defined
+    add_int_to_binary(0x0); // Reserved for instruction schema
+
+    int declare = 0;
+  
+    for(int i = 0; i < opcodes.size(); i++){
+      if(opcodes[i]->number == 71){ // OpExecutionMode, after this is set, we can declare types
+	declare = 1;
+      }else if(declare){
+	declare_necessary_implicit_types();
+	declare = 0;
+      }
+
+      int base = binary->size();
+      add_int_to_binary(opcodes[i]->number); // We add size when all sizes are known
+      int size = 1;
+      int *p_size = &size;
+      output_binary(opcodes[i], p_size);
+
+      // Include size
+      (*binary)[base] |= size << 16;
     }
 
-    int base = binary->size();
-    add_int_to_binary(opcodes[i]->number); // We add size when all sizes are known
-    int size = 1;
-    int *p_size = &size;
-    output_binary(opcodes[i], p_size);
+    (*binary)[bound_index] = identifier_num;
 
-    // Include size
-    (*binary)[base] |= size << 16;
+    /*for(int i = 0; i < binary->size(); i++){
+      printf("%d\n", (*binary)[i]);
+      }*/
   }
 
-  (*binary)[bound_index] = identifier_num;
 
-  /*for(int i = 0; i < binary->size(); i++){
-    printf("%d\n", (*binary)[i]);
-    }*/
-}
+  void clear_spurv(){
+    reset_parser();
+    clear_implicit_type_table();
+  }
+};

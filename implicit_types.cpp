@@ -8,7 +8,12 @@ const std::string pointer_dirs[num_pointer_versions] = {"uniform_constant", "inp
 						  "cross_workgroup", "private", "function", "generic", "push_constant",
 						  "atomic_counter", "image", "storage_buffer"};
 
+static int initialized = 0;
+
 void implicit_type_init(){
+  
+  initialized = 1;
+  
   std::pair<std::string, type_definition_data> data_types[] = {
     {"void", {19, NULL, 0}},
     {"bool", {20, NULL, 0}},
@@ -21,17 +26,18 @@ void implicit_type_init(){
     {"float32", {22, NULL, 1, {32}}},
     {"float64", {22, NULL, 1, {64}}},
     // -1 in argument shall be substituted by dependency identifier
-    {"vec2", {23, "float", 2, {-1, 2}}},
-    {"vec3", {23, "float", 2, {-1, 3}}},
-    {"vec4", {23, "float", 2, {-1, 4}}},
+    // We use strdup to make these homogenous with the pointer versions of the added later
+    {"vec2", {23, strdup("float"), 2, {-1, 2}}},
+    {"vec3", {23, strdup("float"), 2, {-1, 3}}},
+    {"vec4", {23, strdup("float"), 2, {-1, 4}}},
   };
 
   std::pair<std::string, type_definition_data> function_types[] = {
-    {"f_void", {33, "void", 1, {-1}}}
+    {"f_void", {33, strdup("void"), 1, {-1}}}
   };
   
   
-  for(std::pair<std::string, type_definition_data> p : data_types){
+  for(std::pair<std::string, type_definition_data>& p : data_types){
     implicit_types.insert(p);
     for(int i = 0; i < num_pointer_versions; i++){
       std::string pointer_name = std::string("p_") + p.first + std::string("_") + pointer_dirs[i];
@@ -46,10 +52,16 @@ void implicit_type_init(){
 }
 
 bool is_implicit_type(std::string identifier){
+  if(!initialized){
+    implicit_type_init();
+  }
   return !(implicit_types.find(identifier) == implicit_types.end());
 }
 
 void add_implicit_identifier(std::string identifier){
+  if(!initialized){
+    implicit_type_init();
+  }
   type_definition_data d = implicit_types[identifier];
   if(d.dependency){
     bool dependency_will_be_explicitly_defined = is_identifier_to_be_defined(d.dependency);
@@ -84,4 +96,14 @@ void add_implicit_identifier(std::string identifier){
   }
 
   add_identifier_definition(identifier.c_str());
+}
+
+void clear_implicit_type_table(){
+  initialized = 0;
+  for(std::map<std::string, type_definition_data>::iterator it = implicit_types.begin(); it != implicit_types.end(); it++){
+    if((*it).second.dependency){
+      free((*it).second.dependency);
+    }
+  }
+  implicit_types.clear();
 }

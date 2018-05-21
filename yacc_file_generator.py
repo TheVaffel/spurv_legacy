@@ -55,7 +55,7 @@ for i in range(len(enums)):
                \n$$ = construct_value_number(' + enum_values[i] + ', NULL);\n}')
     print('|')
 print('NUMBER {$$ = construct_value_number(strtol(yytext,NULL, 10), NULL);}\n|');
-print('STRING {\tchar* c = (char*)malloc(strlen(yytext - 1)); memcpy(c, yytext + 1, strlen(yytext) - 2);\
+print('STRING {\tchar* c = (char*)malloc(strlen(yytext)-1); memcpy(c, yytext + 1, strlen(yytext) - 2);\
                c[strlen(yytext) - 2] = 0; \n$$ = construct_value_string(c, NULL);}\n|');
 print('identifier_reference {$$ = $1;};')
 print('identifier_reference: IDENTIFIER {\n\t$$ = construct_value_identifier(strdup(yytext), NULL); register_identifier($$->string);}\n');

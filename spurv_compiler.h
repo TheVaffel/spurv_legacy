@@ -53,3 +53,5 @@ bool is_identifier_referenced(const char* string);
 
 int get_value_in_chain(value_t** val, int get_i, value_t* curr);
 int put_into_chain(int put_i, value_t* put_val, value_t* parent);
+
+void reset_parser();
