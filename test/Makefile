@@ -8,4 +8,4 @@ simple: simple_test.cpp ../libspurv.a
 	g++ -g $< -I .. -L .. -l spurv -o $@
 
 clean:
-	rm test
+	rm test simple
