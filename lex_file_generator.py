@@ -9,7 +9,7 @@ header = '%{\n' + \
 'LETTER [a-zA-Z_]\n' + \
 '%%\n' + \
 '[ \\t\\r\\v] ; // Whitespace\n' + \
-'";".* ; // Line comments\n' + \
+'"//".*\\n+ ; // Line comments\n' + \
 '\\n+ {  return NEWLINE;}\n' + \
 '= {return EQUALS;}\n'
 
