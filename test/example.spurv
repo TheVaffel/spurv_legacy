@@ -1,8 +1,13 @@
-capability Shader
-ext_inst_import imported "GLSL.std.450"
-memory_model Logical GLSL450
-entry_point Fragment main "main" outColor color
-execution_mode main OriginUpperLeft
+#header FRAGMENT_SHADER color outColor
+
+// These are included with the header above:
+
+// capability Shader
+// ext_inst_import imported "GLSL.std.450"
+// memory_model Logical GLSL450
+// entry_point Fragment main "main" outColor color
+// execution_mode main OriginUpperLeft
+
 decorate outColor Location 0
 decorate color Location 0
 

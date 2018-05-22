@@ -27,9 +27,11 @@ print('\n%token MAYBE_NEWLINE')
 print('%token IDENTIFIER')
 print('%token NUMBER')
 print('%token STRING')
-print('%token EQUALS');
-
+print('%token EQUALS')
+print('%token HEADER_KEYWORD')
+print('%token HEADER_CLASS')
 print('\n')
+
 for token in tokens:
     print('%token ' + token)
 
@@ -38,7 +40,9 @@ for enum in enums:
     
 print('\n%%\n')
 
-print('program: instruction_list {} | instruction_list NEWLINE {};')
+print('program: header NEWLINE body {} | body {};')
+print('header: HEADER_KEYWORD header_name identifier_list { $$ = $2; $$->next = $3; register_header_definition($$);};')
+print('body: instruction_list {} | instruction_list NEWLINE {};')
 print('instruction_list: instruction_list NEWLINE instruction {} | instruction {} ;')
 print('instruction: opcode argument_list { \
 $1->next = $2; register_identifier_definition($1);\n//print_value_chain($2);printf("\\n");\n\
@@ -46,7 +50,7 @@ $1->next = $2; register_identifier_definition($1);\n//print_value_chain($2);prin
    $3->next = $4; int ind = result_indices[$3->operation_number]; if(put_into_chain(ind, $1, $3) <= ind){printf("Not enough arguments in assignment at line %d\\n", yylineno-1);exit(-1);} register_identifier_definition($3);\
 };')
 print('argument_list: argument_list argument {\n\t $$ = $2; $$->next = $1;} | { $$ = NULL;} ;')
-
+print('identifier_list: identifier_list identifier_reference {$$ = $2; $$->next = $1;} | {$$ = NULL;};')
 
 print('\nargument:')
 for i in range(len(enums)):
@@ -59,6 +63,7 @@ print('STRING {\tchar* c = (char*)malloc(strlen(yytext)-1); memcpy(c, yytext + 1
                c[strlen(yytext) - 2] = 0; \n$$ = construct_value_string(c, NULL);}\n|');
 print('identifier_reference {$$ = $1;};')
 print('identifier_reference: IDENTIFIER {\n\t$$ = construct_value_identifier(strdup(yytext), NULL); register_identifier($$->string);}\n');
+print('header_name: HEADER_CLASS {$$ = construct_value_string(strdup(yytext), NULL);};')
 print(';\n')
 
 print('\n')

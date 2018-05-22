@@ -146,6 +146,19 @@ bool is_identifier_referenced(const char* str){
   return identifiers.find(str) != identifiers.end();
 }
 
+int get_string_word_length(const char* string){
+  return (strlen(string) + 4) / 4;
+}
+
+
+static int header_is_defined = 0;
+static value_t* header_value;
+void register_header_definition(value_t* val){
+  header_is_defined = 1;
+  header_value = val;
+}
+
+
 std::vector<uint32_t>* binary;
 
 void add_int_to_binary(uint32_t integer){
@@ -211,6 +224,53 @@ void output_binary(value_t* val, int* size){
   }
 }
 
+void add_header_to_binary(value_t* header){
+
+  // TODO: Some of this should be factored out when we add more header classes
+  if(0 == strcmp(header->string, "FRAGMENT_SHADER")){
+    
+    // capability Shader
+    add_int_to_binary((2 << 16) | 17);
+    add_int_to_binary(1);
+
+    // GLSL = ext_inst_import "GLSL.std.450"
+    const char* imp = "GLSL.std.450";
+    int length = get_string_word_length(imp);
+    add_int_to_binary(((2 + length) << 16) | 11);
+    std::string import_id_name = "GLSL";
+    register_identifier(import_id_name.c_str());
+    add_identifier_definition(import_id_name.c_str());
+    add_int_to_binary(identifiers[import_id_name]);
+    add_string(imp);
+
+    // memory_model Logical GLSL450
+    add_int_to_binary((3 << 16) | 14);
+    add_int_to_binary(0);
+    add_int_to_binary(1);
+
+    // entry_point Fragment main "main" <input/output variables> (yes, these must be included here)
+    int size_index = binary->size();
+    add_int_to_binary(15); // We add the size in the end
+    int size = 3 + get_string_word_length("main");
+    add_int_to_binary(4); // Fragment
+    std::string entry_name = "main";
+    register_identifier(entry_name.c_str());
+    add_identifier_definition(entry_name.c_str());
+    add_int_to_binary(identifiers[entry_name]);
+    add_string("main");
+    output_binary(header->next, &size);
+    (*binary)[size_index] |= size << 16;
+
+    // execution_mode main OriginUpperLeft
+    add_int_to_binary((3 << 16) | 16);
+    add_int_to_binary(identifiers[entry_name]);
+    add_int_to_binary(7);
+  }else{
+    fprintf(stderr, "Support for header class %s not yet implemented!\n", header->string);
+    exit(-1);
+  }
+}
+
 void declare_necessary_implicit_types(){
   
   std::map<std::string, unsigned int>::iterator map_it = identifiers.begin();
@@ -249,6 +309,11 @@ void reset_parser(){
     destroy_value_tree(opcodes[i]);
   }
   opcodes.clear();
+
+  if(header_is_defined){
+    destroy_value_tree(header_value);
+    header_is_defined = 0;
+  }
 }
 
 
@@ -277,6 +342,10 @@ namespace spurv{
     add_int_to_binary(0x0); // Reserved for instruction schema
 
     int declare = 0;
+
+    if(header_is_defined){
+      add_header_to_binary(header_value);
+    }
   
     for(int i = 0; i < opcodes.size(); i++){
       if(opcodes[i]->number == 71){ // OpExecutionMode, after this is set, we can declare types

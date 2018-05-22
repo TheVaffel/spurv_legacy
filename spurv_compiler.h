@@ -37,6 +37,9 @@ value_t* construct_value_opcode(int code, int code_num, value_t* arg_list);
 value_t* construct_value_identifier(char* str, value_t* next);
 void print_value_chain(value_t* value);
 
+void register_header_definition(value_t* value);
+int get_string_word_length(const char* str);
+
 void add_identifier_definition(const char* str);
 bool is_identifier_defined(const char* str);
 
