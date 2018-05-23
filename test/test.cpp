@@ -55,12 +55,15 @@ int main(){
   //   wg.createResourceSetLayout(0, NULL, NULL);
 
 
-  WingineShader vertexShader = wg.createVertexShader(vertShaderText);
+  
 
   std::vector<uint32_t> spirv;
-  spurv::parse_spurv_file("example.spurv", spirv);
-  spurv::clear_spurv();
-  
+  spurv::parse_spurv_file("example_vert.spurv", spirv);
+  WingineShader vertexShader = wg.createShader(vertShaderText, VK_SHADER_STAGE_VERTEX_BIT);
+
+  spirv.clear();
+  spurv::parse_spurv_file("example_frag.spurv", spirv);
+
   WingineShader fragmentShader = wg.createShader(spirv, VK_SHADER_STAGE_FRAGMENT_BIT);
 
   WinginePipeline colorPipeline = wg.createPipeline(0, NULL,
@@ -107,5 +110,7 @@ int main(){
   wg.destroyBuffer(colorBuffer);
   wg.destroyBuffer(indexBuffer);
 
+  spurv::clear_spurv();
+  
   return 0;
 }

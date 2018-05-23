@@ -69,7 +69,7 @@ print(';\n')
 print('\n')
 print('opcode:\n')
 for i in range(len(tokens)):
-    print(tokens[i] + ' {$$ = construct_value_opcode(' + opcodes[i] + ', ' + str(i) + ', NULL); add_opcode($$);\n }');
+    print(tokens[i] + ' {$$ = construct_value_opcode(' + opcodes[i] + ', ' + str(i) + ', NULL); add_opcode($$);\n // printf("'+tokens[i]+'\\n"); \n }');
     if i != len(tokens) - 1:
         print('|')
 
