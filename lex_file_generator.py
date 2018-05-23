@@ -18,7 +18,7 @@ footer = '{DIGIT}+  { return NUMBER;}\n' + \
 '#header {return HEADER_KEYWORD;}\n' + \
 '(VERTEX_SHADER|FRAGMENT_SHADER|COMPUTE_SHADER) {return HEADER_CLASS;}\n' + \
 '{LETTER}({LETTER}|{DIGIT})* { return IDENTIFIER;}\n' + \
-'.  {\n\tprintf("Unrecognized token %s\\n", yytext);\n}\n' + \
+'.  {\n\tfprintf(stderr, "Unrecognized token %s\\n", yytext);exit(-1);\n}\n' + \
 '%%'
 
 spec_dir = 'spirv_spec/'
