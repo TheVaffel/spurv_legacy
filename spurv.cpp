@@ -310,6 +310,10 @@ void reset_parser(){
   }
   opcodes.clear();
 
+  defined_identifiers.clear();
+  identifiers.clear();
+  to_be_defined_identifiers.clear();
+
   if(header_is_defined){
     destroy_value_tree(header_value);
     header_is_defined = 0;
