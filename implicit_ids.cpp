@@ -1,7 +1,7 @@
-#include <implicit_types.hpp>
+#include <implicit_ids.hpp>
 #include <spurv_compiler.h>
 
-std::map<std::string, type_definition_data> implicit_types;
+std::map<std::string, id_definition_data> implicit_ids;
 
 const int num_pointer_versions = 13;
 const std::string pointer_dirs[num_pointer_versions] = {"uniform_constant", "input", "uniform", "output", "workgroup",
@@ -10,11 +10,11 @@ const std::string pointer_dirs[num_pointer_versions] = {"uniform_constant", "inp
 
 static int initialized = 0;
 
-void implicit_type_init(){
+void implicit_ids_init(){
   
   initialized = 1;
   
-  std::pair<std::string, type_definition_data> data_types[] = {
+  std::pair<std::string, id_definition_data> data_types[] = {
     {"void", {19, NULL, 0}},
     {"bool", {20, NULL, 0}},
     {"int", {21, NULL, 2, {32, 1}}},
@@ -32,37 +32,52 @@ void implicit_type_init(){
     {"vec4", {23, strdup("float"), 2, {-1, 4}}},
   };
 
-  std::pair<std::string, type_definition_data> function_types[] = {
+  std::pair<std::string, id_definition_data> function_types[] = {
     {"f_void", {33, strdup("void"), 1, {-1}}}
   };
   
   
-  for(std::pair<std::string, type_definition_data>& p : data_types){
-    implicit_types.insert(p);
+  for(std::pair<std::string, id_definition_data>& p : data_types){
+    implicit_ids.insert(p);
     for(int i = 0; i < num_pointer_versions; i++){
       std::string pointer_name = std::string("p_") + p.first + std::string("_") + pointer_dirs[i];
-      implicit_types.insert({pointer_name, {32, strdup(p.first.c_str()), 2, {i, -1}}});
+      implicit_ids.insert({pointer_name, {32, strdup(p.first.c_str()), 2, {i, -1}}});
     }
   }
 
 
-  for(std::pair<std::string, type_definition_data> p: function_types){
-    implicit_types.insert(p);
+  for(std::pair<std::string, id_definition_data> p: function_types){
+    implicit_ids.insert(p);
   }
 }
 
-bool is_implicit_type(std::string identifier){
+bool is_implicit_id(std::string identifier){
   if(!initialized){
-    implicit_type_init();
+    implicit_ids_init();
   }
-  return !(implicit_types.find(identifier) == implicit_types.end());
+  return !(implicit_ids.find(identifier) == implicit_ids.end());
+}
+
+void write_id_definition(id_definition_data& d, const char* name){
+  int size = d.num_additional_arguments + 2;
+  
+  add_int_to_binary((size << 16) | d.opcode);
+  
+  add_int_to_binary(get_identifier_number(name));
+  for(int i = 0; i < d.num_additional_arguments; i++){
+    if(d.additional_arguments[i] == -1){
+      add_int_to_binary(get_identifier_number(d.dependency));
+    } else {
+      add_int_to_binary(d.additional_arguments[i]);
+    }
+  }
 }
 
 void add_implicit_identifier(std::string identifier){
   if(!initialized){
-    implicit_type_init();
+    implicit_ids_init();
   }
-  type_definition_data d = implicit_types[identifier];
+  id_definition_data d = implicit_ids[identifier];
   if(d.dependency){
     bool dependency_will_be_explicitly_defined = is_identifier_to_be_defined(d.dependency);
     bool dependency_is_defined = is_identifier_defined(d.dependency);
@@ -72,7 +87,7 @@ void add_implicit_identifier(std::string identifier){
       add_implicit_identifier(d.dependency);
 
     }else if(!dependency_is_defined){
-      printf("Defining dependencies of an implicitly defined type not allowed after use of implicit type (you cannot define %s after reference of %s)\n", d.dependency, identifier.c_str());
+      printf("Defining dependencies of an implicitly defined id not allowed after use of implicit id (you cannot define %s after reference of %s)\n", d.dependency, identifier.c_str());
       exit(-1);
     }
   }
@@ -82,28 +97,17 @@ void add_implicit_identifier(std::string identifier){
   }
   
 
-  int size = d.num_additional_arguments + 2;
-  
-  add_int_to_binary((size << 16) | d.opcode);
-  
-  add_int_to_binary(get_identifier_number(identifier.c_str()));
-  for(int i = 0; i < d.num_additional_arguments; i++){
-    if(d.additional_arguments[i] == -1){
-      add_int_to_binary(get_identifier_number(d.dependency));
-    } else {
-      add_int_to_binary(d.additional_arguments[i]);
-    }
-  }
+  write_id_definition(d, identifier.c_str());
 
   add_identifier_definition(identifier.c_str());
 }
 
-void clear_implicit_type_table(){
+void clear_implicit_id_table(){
   initialized = 0;
-  for(std::map<std::string, type_definition_data>::iterator it = implicit_types.begin(); it != implicit_types.end(); it++){
+  for(std::map<std::string, id_definition_data>::iterator it = implicit_ids.begin(); it != implicit_ids.end(); it++){
     if((*it).second.dependency){
       free((*it).second.dependency);
     }
   }
-  implicit_types.clear();
+  implicit_ids.clear();
 }

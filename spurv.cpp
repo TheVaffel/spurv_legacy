@@ -1,6 +1,6 @@
 #include <spurv_compiler.h>
 #include <y.tab.hpp>
-#include <implicit_types.hpp>
+#include <implicit_ids.hpp>
 
 #include <vector>
 #include <map>
@@ -11,6 +11,15 @@
 
 
 extern FILE* yyin;
+
+
+// Used to locate identifiers to define implicitly (supporting e.g. void, float etc..)
+std::set<std::string> to_be_defined_identifiers;
+std::set<std::string> defined_identifiers;
+
+std::map<std::string, uint32_t> identifiers;
+std::set<std::string> constant_identifiers;
+
 
 value_t* get_new_value(){
   
@@ -109,10 +118,6 @@ void add_opcode(value_t* opcode){
   opcodes.push_back(opcode);
 }
 
-// Used to locate identifiers to define implicitly (supporting e.g. void, float etc..)
-std::set<std::string> to_be_defined_identifiers;
-std::set<std::string> defined_identifiers;
-
 void add_identifier_definition(const char* str){
   defined_identifiers.insert(std::string(str));
 }
@@ -129,8 +134,6 @@ bool is_identifier_to_be_defined(const char* str){
   return to_be_defined_identifiers.find(str) != to_be_defined_identifiers.end();
 }
 
-std::map<std::string, uint32_t> identifiers;
-
 static uint32_t identifier_num = 1;
 // Note: Will not register if already registered, making identifier handling somewhat easier
 void register_identifier(const char* string){
@@ -144,6 +147,22 @@ int get_identifier_number(const char* string){
 
 bool is_identifier_referenced(const char* str){
   return identifiers.find(str) != identifiers.end();
+}
+
+
+void register_constant(const char* str){
+
+  /*switch(str[0]){
+  case 'u': register_identifier("uint32");
+    break;
+  case 'i': register_identifier("int32");
+    break;
+  case 'f': register_identifier("float32");
+    break;
+    }*/ 
+  constant_identifiers.insert(str);
+  
+  add_identifier_definition(str);
 }
 
 int get_string_word_length(const char* string){
@@ -226,8 +245,11 @@ void output_binary(value_t* val, int* size){
 
 void add_header_to_binary(value_t* header){
 
-  // TODO: Some of this should be factored out when we add more header classes
-  if(0 == strcmp(header->string, "FRAGMENT_SHADER")){
+  int is_fragment_shader = 0 == strcmp(header->string, "FRAGMENT_SHADER");
+  int is_vertex_shader = 0 == strcmp(header->string, "VERTEX_SHADER");
+
+  
+  if(is_fragment_shader || is_vertex_shader){
     
     // capability Shader
     add_int_to_binary((2 << 16) | 17);
@@ -248,11 +270,16 @@ void add_header_to_binary(value_t* header){
     add_int_to_binary(0);
     add_int_to_binary(1);
 
-    // entry_point Fragment main "main" <input/output variables> (yes, these must be included here)
+    // entry_point <shader type>  main "main" <input/output variables> (yes, these must be included here)
     int size_index = binary->size();
     add_int_to_binary(15); // We add the size in the end
     int size = 3 + get_string_word_length("main");
-    add_int_to_binary(4); // Fragment
+
+    if(is_fragment_shader){
+      add_int_to_binary(4); // Fragment
+    }else if(is_vertex_shader){
+      add_int_to_binary(0); // Vertex
+    }
     std::string entry_name = "main";
     register_identifier(entry_name.c_str());
     add_identifier_definition(entry_name.c_str());
@@ -271,7 +298,7 @@ void add_header_to_binary(value_t* header){
   }
 }
 
-void declare_necessary_implicit_types(){
+void declare_necessary_implicit_ids(){
   
   std::map<std::string, unsigned int>::iterator map_it = identifiers.begin();
 
@@ -279,12 +306,40 @@ void declare_necessary_implicit_types(){
     //printf("Identifier %s has num %d\n", (*map_it).first.c_str(), (*map_it).second);
     if(!is_identifier_to_be_defined((*map_it).first.c_str()) &&
        !is_identifier_defined((*map_it).first.c_str())){
-      if(is_implicit_type((*map_it).first.c_str())){
+      if(is_implicit_id((*map_it).first.c_str())){
 	add_implicit_identifier((*map_it).first);
       }else{
 	printf("Identifier %s was not defined, and is not an implicit type\n", (*map_it).first.c_str());
       }
     }
+  }
+
+  std::set<std::string>::iterator it = constant_identifiers.begin();
+
+  for(; it != constant_identifiers.end(); it++){
+    id_definition_data data;
+    data.opcode = 43; // constant
+    switch((*it)[0]){
+    case 'u':
+      data.dependency = strdup("uint32");
+      data.additional_arguments[2] = atoi((*it).c_str() + 1);
+      break;
+    case 'i':
+      data.dependency = strdup("int32");
+      data.additional_arguments[2] = atoi((*it).c_str() + 1);
+      break;
+    case 'f':
+      data.dependency = strdup("float32");
+      data.additional_arguments[2] = atof((*it).c_str() + 1);
+      break;
+    }
+    data.num_additional_arguments = 3;
+    data.additional_arguments[0] = -1;
+    data.additional_arguments[1] = identifiers[*it];
+
+    write_id_definition(data, (*it).c_str());
+
+    free(data.dependency); // Keeping it clean..
   }
 }
 
@@ -355,7 +410,7 @@ namespace spurv{
       if(opcodes[i]->number == 71){ // OpExecutionMode, after this is set, we can declare types
 	declare = 1;
       }else if(declare){
-	declare_necessary_implicit_types();
+	declare_necessary_implicit_ids();
 	declare = 0;
       }
 
@@ -379,6 +434,6 @@ namespace spurv{
 
   void clear_spurv(){
     reset_parser();
-    clear_implicit_type_table();
+    clear_implicit_id_table();
   }
 };

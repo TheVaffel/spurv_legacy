@@ -59,7 +59,7 @@ int main(){
 
   std::vector<uint32_t> spirv;
   spurv::parse_spurv_file("example_vert.spurv", spirv);
-  WingineShader vertexShader = wg.createShader(vertShaderText, VK_SHADER_STAGE_VERTEX_BIT);
+  WingineShader vertexShader = wg.createShader(spirv, VK_SHADER_STAGE_VERTEX_BIT);
 
   spirv.clear();
   spurv::parse_spurv_file("example_frag.spurv", spirv);

@@ -1,5 +1,6 @@
 header = '%{\n' + \
 '#include <y.tab.hpp>\n' + \
+'#include <spurv_compiler.h>\n' + \
 '%}\n' + \
 '%option noyywrap\n' + \
 '%option array\n' + \
@@ -17,6 +18,8 @@ footer = '{DIGIT}+  { return NUMBER;}\n' + \
 '\\"(\\\\.|[^\\\\"])*\\" { return STRING;}\n' + \
 '#header {return HEADER_KEYWORD;}\n' + \
 '(VERTEX_SHADER|FRAGMENT_SHADER|COMPUTE_SHADER) {return HEADER_CLASS;}\n' + \
+'(u|i)(-?)({DIGIT}+) {register_constant(yytext); return IDENTIFIER;}\n' + \
+'f({DIGIT}+)\\.({DIGIT}+) {register_constant(yytext); return IDENTIFIER;}\n' + \
 '{LETTER}({LETTER}|{DIGIT})* { return IDENTIFIER;}\n' + \
 '.  {\n\tfprintf(stderr, "Unrecognized token %s\\n", yytext);exit(-1);\n}\n' + \
 '%%'

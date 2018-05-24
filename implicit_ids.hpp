@@ -8,13 +8,15 @@ typedef struct s {
   char* dependency;
   int num_additional_arguments;
   int additional_arguments[IMPLICIT_TYPES_MAX_NUM_ADDITIONAL_ARGUMENTS];
-} type_definition_data;
+} id_definition_data;
 
 
-void implicit_type_init();
+void implicit_ids_init();
 
-bool is_implicit_type(std::string identifier);
+bool is_implicit_id(std::string identifier);
+
+void write_id_definition(id_definition_data& data, const char* str);
 
 void add_implicit_identifier(std::string identifier);
 
-void clear_implicit_type_table();
+void clear_implicit_id_table();
