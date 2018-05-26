@@ -14,9 +14,13 @@ decorate color Location 0
 outColor = variable p_vec4_output Output
 color = variable p_vec4_input Input
 
+ccc = constant_composite vec4 f0.0 f1.0 f0.0 f1.0
+
+
 function void main None f_void
 label main_block
 temp = load  vec4 color
 store outColor temp
+store outColor ccc
 return
 function_end

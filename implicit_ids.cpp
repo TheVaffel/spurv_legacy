@@ -22,14 +22,14 @@ void implicit_ids_init(){
     {"int64", {21, NULL, 2, {64, 1}}},
     {"uint32", {21, NULL, 2, {32, 0}}},
     {"uint64", {21, NULL, 2, {64, 0}}},
-    {"float", {22, NULL, 1, {32}}},
+    // {"float", {22, NULL, 1, {32}}}, // This one really messes up when used with float32 (not allowed)
     {"float32", {22, NULL, 1, {32}}},
     {"float64", {22, NULL, 1, {64}}},
     // -1 in argument shall be substituted by dependency identifier
     // We use strdup to make these homogenous with the pointer versions of the added later
-    {"vec2", {23, strdup("float"), 2, {-1, 2}}},
-    {"vec3", {23, strdup("float"), 2, {-1, 3}}},
-    {"vec4", {23, strdup("float"), 2, {-1, 4}}},
+    {"vec2", {23, strdup("float32"), 2, {-1, 2}}},
+    {"vec3", {23, strdup("float32"), 2, {-1, 3}}},
+    {"vec4", {23, strdup("float32"), 2, {-1, 4}}},
   };
 
   std::pair<std::string, id_definition_data> function_types[] = {
@@ -58,7 +58,19 @@ bool is_implicit_id(std::string identifier){
   return !(implicit_ids.find(identifier) == implicit_ids.end());
 }
 
-void write_id_definition(id_definition_data& d, const char* name){
+
+// For constants
+void write_constant_definition(id_definition_data& d, const char* name){
+  
+  add_int_to_binary((4 << 16) | d.opcode);
+
+  add_int_to_binary(get_identifier_number(d.dependency)); // Assume this is the type is always second argument...
+  add_int_to_binary(get_identifier_number(name));
+  add_int_to_binary(d.additional_arguments[0]);
+}
+
+// For implicit types
+void write_type_definition(id_definition_data& d, const char* name){
   int size = d.num_additional_arguments + 2;
   
   add_int_to_binary((size << 16) | d.opcode);
@@ -73,11 +85,9 @@ void write_id_definition(id_definition_data& d, const char* name){
   }
 }
 
-void add_implicit_identifier(std::string identifier){
-  if(!initialized){
-    implicit_ids_init();
-  }
-  id_definition_data d = implicit_ids[identifier];
+
+// Returns true if everything is ok
+bool ensure_dependency_is_in_place(id_definition_data& d){
   if(d.dependency){
     bool dependency_will_be_explicitly_defined = is_identifier_to_be_defined(d.dependency);
     bool dependency_is_defined = is_identifier_defined(d.dependency);
@@ -87,17 +97,29 @@ void add_implicit_identifier(std::string identifier){
       add_implicit_identifier(d.dependency);
 
     }else if(!dependency_is_defined){
-      printf("Defining dependencies of an implicitly defined id not allowed after use of implicit id (you cannot define %s after reference of %s)\n", d.dependency, identifier.c_str());
-      exit(-1);
+      return false;
     }
+  }
+  return true;
+}
+
+void add_implicit_identifier(std::string identifier){
+  if(!initialized){
+    implicit_ids_init();
+  }
+  id_definition_data d = implicit_ids[identifier];
+
+  if(!ensure_dependency_is_in_place(d)){
+    printf("Defining dependencies of an implicitly defined id not allowed after use of implicit id (you cannot define %s after reference of %s)\n", d.dependency, identifier.c_str());
+    exit(-1);
   }
 
   if(!is_identifier_referenced(identifier.c_str())){
     register_identifier(identifier.c_str());
   }
   
-
-  write_id_definition(d, identifier.c_str());
+  
+  write_type_definition(d, identifier.c_str());
 
   add_identifier_definition(identifier.c_str());
 }

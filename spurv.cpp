@@ -161,8 +161,6 @@ void register_constant(const char* str){
     break;
     }*/ 
   constant_identifiers.insert(str);
-  
-  add_identifier_definition(str);
 }
 
 int get_string_word_length(const char* string){
@@ -308,7 +306,7 @@ void declare_necessary_implicit_ids(){
        !is_identifier_defined((*map_it).first.c_str())){
       if(is_implicit_id((*map_it).first.c_str())){
 	add_implicit_identifier((*map_it).first);
-      }else{
+      }else if(constant_identifiers.find((*map_it).first) == constant_identifiers.end()){
 	printf("Identifier %s was not defined, and is not an implicit type\n", (*map_it).first.c_str());
       }
     }
@@ -319,25 +317,35 @@ void declare_necessary_implicit_ids(){
   for(; it != constant_identifiers.end(); it++){
     id_definition_data data;
     data.opcode = 43; // constant
+
+    
+    register_identifier((*it).c_str());
+    add_identifier_definition((*it).c_str());
+    
+    float f;
+    
     switch((*it)[0]){
     case 'u':
       data.dependency = strdup("uint32");
-      data.additional_arguments[2] = atoi((*it).c_str() + 1);
+      data.additional_arguments[0] = atoi((*it).c_str() + 1);
       break;
     case 'i':
       data.dependency = strdup("int32");
-      data.additional_arguments[2] = atoi((*it).c_str() + 1);
+      data.additional_arguments[0] = atoi((*it).c_str() + 1);
       break;
     case 'f':
       data.dependency = strdup("float32");
-      data.additional_arguments[2] = atof((*it).c_str() + 1);
+      f = atof((*it).c_str() + 1);
+      data.additional_arguments[0] = *((uint32_t*)&f);
       break;
     }
-    data.num_additional_arguments = 3;
-    data.additional_arguments[0] = -1;
-    data.additional_arguments[1] = identifiers[*it];
 
-    write_id_definition(data, (*it).c_str());
+    if(!ensure_dependency_is_in_place(data)){
+      printf("Constant %s has a dependency defined after use of the constant\n", (*it).c_str());
+      exit(-1);
+    }
+    
+    write_constant_definition(data, (*it).c_str());
 
     free(data.dependency); // Keeping it clean..
   }
@@ -426,8 +434,14 @@ namespace spurv{
 
     (*binary)[bound_index] = identifier_num;
 
+
+    // Handy for debugging
     /*for(int i = 0; i < binary->size(); i++){
-      printf("%d\n", (*binary)[i]);
+      if((*binary)[i] >= 1 << 16){
+	printf("%d | %d\n", (*binary)[i] >> 16, (*binary)[i] & ((1 << 16) - 1));
+      }else{
+	printf("%d\n", (*binary)[i]);
+      }
       }*/
   }
 
