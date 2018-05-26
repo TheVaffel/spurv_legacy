@@ -381,6 +381,8 @@ void reset_parser(){
     destroy_value_tree(header_value);
     header_is_defined = 0;
   }
+
+  identifier_num = 1;
 }
 
 
