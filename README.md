@@ -9,6 +9,7 @@ A small comparison to Khrono's specification:
 - Result id's from operations can either be declared as an operand, like it is treated in the physical binary format, or might be assigned with an 'equals' sign, as in Khronos' assembly specification
 - Some common types may be referenced without being explicitly defined beforehand. If e. g. `void`, `float` or `vec4` is used as a type without being defined, definitions are generated for these on the fly.
 - Some headers for common module types are supported, like FRAGMENT_SHADER and VERTEX_SHADER. See examples for explanations. Attribute definitions must be defined after a header with the #in and #out tags.
+- The implicit types, 'equals'-notation and headers are all optional, and one might write the whole programs with raw SPIR-V grammar (excluding the metadata in the start of a module).
 
 ## Build
 
