@@ -8,7 +8,7 @@ A small comparison to Khrono's specification:
 - Free-form variable names as result id's are supported (all c-like variable names that are not keywords are permitted)
 - Result id's from operations can either be declared as an operand, like it is treated in the physical binary format, or might be assigned with an 'equals' sign, as in Khronos' assembly specification
 - Some common types may be referenced without being explicitly defined beforehand. If e. g. `void`, `float` or `vec4` is used as a type without being defined, definitions are generated for these on the fly.
-- Some headers for common module types are supported, like FRAGMENT_SHADER (more are to be added). See `test/example.spurv` for an explanation of whan it means
+- Some headers for common module types are supported, like FRAGMENT_SHADER and VERTEX_SHADER. See examples for explanations. Attribute definitions must be defined after a header with the #in and #out tags.
 
 ## Build
 
