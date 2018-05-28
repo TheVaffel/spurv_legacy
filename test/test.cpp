@@ -51,16 +51,12 @@ int main(){
 
   WingineBuffer indexBuffer = wg.createIndexBuffer(3*2*sizeof(int32_t), test_indices);
 
-  // WingineResourceSetLayout resourceLayout =
-  //   wg.createResourceSetLayout(0, NULL, NULL);
-
-
-  
-
   std::vector<uint32_t> spirv;
   spurv::parse_spurv_file("example_vert.spurv", spirv);
   WingineShader vertexShader = wg.createShader(spirv, VK_SHADER_STAGE_VERTEX_BIT);
-
+#ifdef DEBUG
+  printf("Done with vertex shader\n");
+#endif
   spirv.clear();
   spurv::parse_spurv_file("example_frag.spurv", spirv);
 

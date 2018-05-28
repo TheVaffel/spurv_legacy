@@ -1,4 +1,6 @@
-#header FRAGMENT_SHADER color outColor
+#header FRAGMENT_SHADER
+#in vec4 color
+#out vec4 outColor
 
 // These are included with the header above:
 
@@ -8,11 +10,11 @@
 // entry_point Fragment main "main" outColor color
 // execution_mode main OriginUpperLeft
 
-decorate outColor Location 0
-decorate color Location 0
+// decorate outColor Location 0
+// decorate color Location 0
 
-outColor = variable p_vec4_output Output
-color = variable p_vec4_input Input
+// outColor = variable p_vec4_output Output
+// color = variable p_vec4_input Input
 
 ccc = constant_composite vec4 f0.0 f1.0 f0.0 f1.0
 
@@ -21,6 +23,6 @@ function void main None f_void
 label main_block
 temp = load  vec4 color
 store outColor temp
-store outColor ccc
+// store outColor ccc
 return
 function_end

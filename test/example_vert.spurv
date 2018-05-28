@@ -1,42 +1,41 @@
 capability Shader
-
 imp = ext_inst_import "GLSL.std.450"
 memory_model Logical GLSL450
-entry_point Vertex main "main" x vert outColor color
+entry_point Vertex main "main" vert outColor color
 
-member_decorate gl_PerVertex 0 BuiltIn Position
-member_decorate gl_PerVertex 1 BuiltIn PointSize
+decorate _Position BuiltIn Position
+decorate _PointSize BuiltIn PointSize
+// #header VERTEX_SHADER
+// #in vec4 vert
+// #in vec4 color
+// #out vec4 outColor
 
 // '3' is for ClipDistance (name collision, so we write it as a literal)
-member_decorate gl_PerVertex 2 BuiltIn 3
+// decorate _ClipDistance BuiltIn 3
 
 // '4' is for CullDistance
-member_decorate gl_PerVertex 3 BuiltIn 4
+// decorate _CurrDistance BuiltIn 4
 
-decorate gl_PerVertex Block
 decorate vert Location 0
 decorate outColor Location 0
 decorate color Location 1
 
-uint_1 = constant uint32 1
-arr_float_uint_1 = type_array float uint_1
-gl_PerVertex = type_struct vec4 float arr_float_uint_1 arr_float_uint_1
-ptr_Output_gl_PerVertex = type_pointer Output gl_PerVertex
-x = variable ptr_Output_gl_PerVertex Output
-
-int_0 = constant int 0
+_Position = variable p_vec4_output Output
+_PointSize = variable p_float32_output Output	
 
 vert = variable p_vec4_input Input
 
 outColor = variable p_vec4_output Output
 color = variable p_vec4_input Input
 
+int_0 = constant int 0
+
 main = function void None f_void
 lablab = label
 ld = load vec4 vert
 // Member number 0 in x (which is gl_PerVertex) is Position
-t0 = access_chain p_vec4_output x int_0
-store t0 ld
+
+store _Position ld
 t1 = load vec4 color
 store outColor t1
 return

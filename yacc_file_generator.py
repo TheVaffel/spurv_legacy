@@ -30,6 +30,7 @@ print('%token STRING')
 print('%token EQUALS')
 print('%token HEADER_KEYWORD')
 print('%token HEADER_CLASS')
+print('%token HEADER_IO_KEYWORD')
 print('\n')
 
 for token in tokens:
@@ -40,8 +41,10 @@ for enum in enums:
     
 print('\n%%\n')
 
-print('program: header NEWLINE body {} | body {};')
-print('header: HEADER_KEYWORD header_name identifier_list { $$ = $2; $$->next = $3; register_header_definition($$);};')
+print('program: header body {} | body {};')
+print('header: HEADER_KEYWORD header_name NEWLINE header_io_list { $$ = $2; $$->next = $3; register_header_definition($$);};')
+print('header_io_list: header_io_list io_entry {register_io_entry($2);} | io_entry {register_io_entry($1);};')
+print('io_entry: io_keyword_reference identifier_reference identifier_reference NEWLINE {$$ = $1; $1->next = $2; $2->next = $3; add_future_identifier_definition($3->string); };')
 print('body: instruction_list {} | instruction_list NEWLINE {};')
 print('instruction_list: instruction_list NEWLINE instruction {} | instruction {} ;')
 print('instruction: opcode argument_list { \
@@ -50,7 +53,6 @@ $1->next = $2; register_identifier_definition($1);\n//print_value_chain($2);prin
    $3->next = $4; int ind = result_indices[$3->operation_number]; if(put_into_chain(ind, $1, $3) <= ind){printf("Not enough arguments in assignment at line %d\\n", yylineno-1);exit(-1);} register_identifier_definition($3);\
 };')
 print('argument_list: argument_list argument {\n\t $$ = $2; $$->next = $1;} | { $$ = NULL;} ;')
-print('identifier_list: identifier_list identifier_reference {$$ = $2; $$->next = $1;} | {$$ = NULL;};')
 
 print('\nargument:')
 for i in range(len(enums)):
@@ -58,12 +60,15 @@ for i in range(len(enums)):
           + ' {\n//printf("Enum: ' + enums[i] + '\\n");\
                \n$$ = construct_value_number(' + enum_values[i] + ', NULL);\n}')
     print('|')
+
 print('NUMBER {$$ = construct_value_number(strtol(yytext,NULL, 10), NULL);}\n|');
 print('STRING {\tchar* c = (char*)malloc(strlen(yytext)-1); memcpy(c, yytext + 1, strlen(yytext) - 2);\
                c[strlen(yytext) - 2] = 0; \n$$ = construct_value_string(c, NULL);}\n|');
 print('identifier_reference {$$ = $1;};')
 print('identifier_reference: IDENTIFIER {\n\t$$ = construct_value_identifier(strdup(yytext), NULL); register_identifier($$->string);}\n');
 print('header_name: HEADER_CLASS {$$ = construct_value_string(strdup(yytext), NULL);};')
+print('io_keyword_reference: HEADER_IO_KEYWORD {$$ = construct_value_string(strdup(yytext), NULL);};')
+
 print(';\n')
 
 print('\n')

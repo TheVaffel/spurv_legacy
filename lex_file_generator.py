@@ -12,10 +12,12 @@ header = '%{\n' + \
 '"//".*\\n+ ; // Line comments\n' + \
 '\\n+ {  return NEWLINE;}\n' + \
 '= {return EQUALS;}\n'
+ 
 
 footer = '{DIGIT}+  { return NUMBER;}\n' + \
 '\\"(\\\\.|[^\\\\"])*\\" { return STRING;}\n' + \
 '#header {return HEADER_KEYWORD;}\n' + \
+'(#out|#in) {return HEADER_IO_KEYWORD;}\n' + \
 '(VERTEX_SHADER|FRAGMENT_SHADER|COMPUTE_SHADER) {return HEADER_CLASS;}\n' + \
 '(u|i)(-?)({DIGIT}+) {register_constant(yytext); return IDENTIFIER;}\n' + \
 'f({DIGIT}+)\\.({DIGIT}+) {register_constant(yytext); return IDENTIFIER;}\n' + \

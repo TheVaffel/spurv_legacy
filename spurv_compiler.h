@@ -41,6 +41,7 @@ void register_header_definition(value_t* value);
 int get_string_word_length(const char* str);
 
 void register_constant(const char* str);
+void register_io_entry(value_t* v);
 
 void add_identifier_definition(const char* str);
 bool is_identifier_defined(const char* str);
@@ -60,3 +61,4 @@ int get_value_in_chain(value_t** val, int get_i, value_t* curr);
 int put_into_chain(int put_i, value_t* put_val, value_t* parent);
 
 void reset_parser();
+void destroy_value_tree(value_t* v);

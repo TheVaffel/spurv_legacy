@@ -19,6 +19,8 @@ std::set<std::string> defined_identifiers;
 
 std::map<std::string, uint32_t> identifiers;
 std::set<std::string> constant_identifiers;
+std::vector<std::pair<std::string, std::string> > input_identifiers;
+std::vector<std::pair<std::string, std::string> > output_identifiers;
 
 
 value_t* get_new_value(){
@@ -149,17 +151,23 @@ bool is_identifier_referenced(const char* str){
   return identifiers.find(str) != identifiers.end();
 }
 
+void register_io_entry(value_t* val){
+  std::string s;
+  if(0 == strcmp(val->string, "#out")){
+    s = std::string("p_") + val->next->string + std::string("_output");
+    output_identifiers.push_back(std::make_pair(s, val->next->next->string));
+  }else{ // Assume not #out means #in
+    s = std::string("p_") + val->next->string + std::string("_input");
+    input_identifiers.push_back(std::make_pair(s, val->next->next->string));
+  
+  }
+  register_identifier(s.c_str());
+
+  destroy_value_tree(val);
+}
+
 
 void register_constant(const char* str){
-
-  /*switch(str[0]){
-  case 'u': register_identifier("uint32");
-    break;
-  case 'i': register_identifier("int32");
-    break;
-  case 'f': register_identifier("float32");
-    break;
-    }*/ 
   constant_identifiers.insert(str);
 }
 
@@ -283,13 +291,43 @@ void add_header_to_binary(value_t* header){
     add_identifier_definition(entry_name.c_str());
     add_int_to_binary(identifiers[entry_name]);
     add_string("main");
-    output_binary(header->next, &size);
+    for(int i = 0; i < input_identifiers.size(); i++){
+      add_int_to_binary(identifiers[input_identifiers[i].second]);
+      size++;
+    }
+    for(int i = 0; i < output_identifiers.size(); i++){
+      add_int_to_binary(identifiers[output_identifiers[i].second]);
+      size++;
+    }
+    
     (*binary)[size_index] |= size << 16;
 
-    // execution_mode main OriginUpperLeft
-    add_int_to_binary((3 << 16) | 16);
-    add_int_to_binary(identifiers[entry_name]);
-    add_int_to_binary(7);
+    if(is_fragment_shader){
+      // execution_mode main OriginUpperLeft
+      add_int_to_binary((3 << 16) | 16);
+      add_int_to_binary(identifiers[entry_name]);
+      add_int_to_binary(7);
+    }else if(is_vertex_shader){
+      output_identifiers.push_back({"p_vec4_output", "_Position"});
+      output_identifiers.push_back({"p_float32_output", "_PointSize"});
+
+      register_identifier("p_vec4_output");
+      register_identifier("p_float32_output");
+      register_identifier("_Position");
+      register_identifier("_PointSize");
+    }
+
+    // decorate <attribute> Location <index>
+    std::vector<std::pair<std::string, std::string> >* iovs[2] = {&input_identifiers, &output_identifiers};
+    for(int j = 0; j < 2; j++){
+      for(int i = 0; i < iovs[j]->size(); i++){
+	add_int_to_binary((4 << 16) | 71);
+	add_int_to_binary(identifiers[(*iovs[j])[i].second]);
+	add_int_to_binary(30);
+	add_int_to_binary(i);
+      }
+    }
+
   }else{
     fprintf(stderr, "Support for header class %s not yet implemented!\n", header->string);
     exit(-1);
@@ -301,7 +339,6 @@ void declare_necessary_implicit_ids(){
   std::map<std::string, unsigned int>::iterator map_it = identifiers.begin();
 
   for(; map_it != identifiers.end(); map_it++){
-    //printf("Identifier %s has num %d\n", (*map_it).first.c_str(), (*map_it).second);
     if(!is_identifier_to_be_defined((*map_it).first.c_str()) &&
        !is_identifier_defined((*map_it).first.c_str())){
       if(is_implicit_id((*map_it).first.c_str())){
@@ -382,7 +419,27 @@ void reset_parser(){
     header_is_defined = 0;
   }
 
+  input_identifiers.clear();
+  output_identifiers.clear();
+
   identifier_num = 1;
+}
+
+void declare_io_variables(){
+  // variable <type> <identifier> Input
+  for(int i = 0; i < input_identifiers.size(); i++){
+    add_int_to_binary((4 << 16) | 59);
+    add_int_to_binary(identifiers[input_identifiers[i].first]);
+    add_int_to_binary(identifiers[input_identifiers[i].second]);
+    add_int_to_binary(1);
+  }
+
+  for(int i = 0; i < output_identifiers.size(); i++){
+    add_int_to_binary((4 << 16) | 59);
+    add_int_to_binary(identifiers[output_identifiers[i].first]);
+    add_int_to_binary(identifiers[output_identifiers[i].second]);
+    add_int_to_binary(3);
+  }
 }
 
 
@@ -414,10 +471,12 @@ namespace spurv{
 
     if(header_is_defined){
       add_header_to_binary(header_value);
+      declare_necessary_implicit_ids();
+      declare_io_variables();
     }
   
     for(int i = 0; i < opcodes.size(); i++){
-      if(opcodes[i]->number == 71){ // OpExecutionMode, after this is set, we can declare types
+      if(!header_is_defined && opcodes[i]->number == 71){ // Decorates, after these are set, we can declare types
 	declare = 1;
       }else if(declare){
 	declare_necessary_implicit_ids();
