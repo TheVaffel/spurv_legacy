@@ -5,7 +5,6 @@ header = '%{\n' + \
 '%option noyywrap\n' + \
 '%option array\n' + \
 '%option yylineno\n' + \
-'%x LASTEND\n' + \
 'DIGIT [0-9]\n' + \
 'LETTER [a-zA-Z_]\n' + \
 '%%\n' + \
