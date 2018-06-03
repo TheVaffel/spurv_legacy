@@ -42,39 +42,102 @@ for enum in enums:
 print('\n%%\n')
 
 print('program: header body {} | body {};')
-print('header: HEADER_KEYWORD header_name NEWLINE header_io_list { $$ = $2; $$->next = $3; register_header_definition($$);};')
-print('header_io_list: header_io_list io_entry {register_io_entry($2);} | io_entry {register_io_entry($1);};')
-print('io_entry: io_keyword_reference identifier_reference identifier_reference NEWLINE {$$ = $1; $1->next = $2; $2->next = $3; add_future_identifier_definition($3->string); };')
-print('body: instruction_list {} | instruction_list NEWLINE {};')
-print('instruction_list: instruction_list NEWLINE instruction {} | instruction {} ;')
-print('instruction: opcode argument_list { \
-$1->next = $2; register_identifier_definition($1);\n//print_value_chain($2);printf("\\n");\n\
-} | identifier_reference EQUALS opcode argument_list { \
-   $3->next = $4; int ind = result_indices[$3->operation_number]; if(put_into_chain(ind, $1, $3) <= ind){printf("Not enough arguments in assignment at line %d\\n", yylineno-1);exit(-1);} register_identifier_definition($3);\
-};')
-print('argument_list: argument_list argument {\n\t $$ = $2; $$->next = $1;} | { $$ = NULL;} ;')
+print('header: HEADER_KEYWORD header_name NEWLINE header_io_list \n\
+      { \n\
+          $$ = $2; \n\
+          $$->next = $3; \n\
+          register_header_definition($$); \n\
+      }; \n')
+
+print('header_io_list: header_io_list io_entry \n\
+      { \n\
+          register_io_entry($2);} | \n\
+          io_entry {register_io_entry($1); \n\
+      }; \n')
+
+print('io_entry: io_keyword_reference identifier_reference identifier_reference NEWLINE \n\
+      { \n\
+          $$ = $1; \n\
+          $1->next = $2; \n\
+          $2->next = $3; \n\
+          add_future_identifier_definition($3->string); \n\
+      }; \n')
+
+print('body: instruction_list {} \n\
+      | \n\
+      instruction_list NEWLINE {}; \n')
+
+print('instruction_list: instruction_list NEWLINE instruction {} \n\
+      | \n\
+      instruction {} ; \n')
+
+print('instruction: opcode argument_list { \n\
+          $1->next = $2; \n\
+          register_identifier_definition($1); \n\
+          // print_value_chain($2); \n\
+          // printf("\\n"); \n\
+      } | \n\
+      identifier_reference EQUALS opcode argument_list { \n\
+          $3->next = $4; \n\
+          int ind = result_indices[$3->operation_number]; \n\
+          if(put_into_chain(ind, $1, $3) <= ind){ \n\
+              printf("Not enough arguments in assignment at line %d\\n", yylineno-1); \n\
+              exit(-1); \n\
+          } \n\
+          register_identifier_definition($3); \n\
+      }; \n')
+print('argument_list: argument_list argument { \n\
+          $$ = $2; \n\
+          $$->next = $1; \n\
+      } | \n\
+      { $$ = NULL;} ; \n')
 
 print('\nargument:')
 for i in range(len(enums)):
-    print('E_' + enums[i] \
-          + ' {\n//printf("Enum: ' + enums[i] + '\\n");\
-               \n$$ = construct_value_number(' + enum_values[i] + ', NULL);\n}')
+    print('E_' + enums[i] + '{ \n\
+              //printf("Enum: ' + enums[i] + '\\n"); \n\
+              $$ = construct_value_number(' + enum_values[i] + ', NULL); \n\
+          }')
     print('|')
 
-print('NUMBER {$$ = construct_value_number(strtol(yytext,NULL, 10), NULL);}\n|');
-print('STRING {\tchar* c = (char*)malloc(strlen(yytext)-1); memcpy(c, yytext + 1, strlen(yytext) - 2);\
-               c[strlen(yytext) - 2] = 0; \n$$ = construct_value_string(c, NULL);}\n|');
-print('identifier_reference {$$ = $1;};')
-print('identifier_reference: IDENTIFIER {\n\t$$ = construct_value_identifier(strdup(yytext), NULL); register_identifier($$->string);}\n');
-print('header_name: HEADER_CLASS {$$ = construct_value_string(strdup(yytext), NULL);};')
-print('io_keyword_reference: HEADER_IO_KEYWORD {$$ = construct_value_string(strdup(yytext), NULL);};')
+print('NUMBER { \n\
+      $$ = construct_value_number(strtol(yytext,NULL, 10), NULL); \n\
+      } | \n');
+
+print('STRING { \n\
+          char* c = (char*)malloc(strlen(yytext)-1); \n\
+          memcpy(c, yytext + 1, strlen(yytext) - 2); \n\
+          c[strlen(yytext) - 2] = 0; \n\
+          $$ = construct_value_string(c, NULL); \n\
+      } | \n');
+
+print('identifier_reference { \n\
+          $$ = $1; \n\
+      };')
+
+print('identifier_reference: IDENTIFIER { \n\
+          $$ = construct_value_identifier(strdup(yytext), NULL); \n\
+          register_identifier($$->string); \n\
+      }');
+
+print('header_name: HEADER_CLASS { \n\
+          $$ = construct_value_string(strdup(yytext), NULL); \n\
+      };')
+
+print('io_keyword_reference: HEADER_IO_KEYWORD { \n\
+          $$ = construct_value_string(strdup(yytext), NULL); \n\
+      };')
 
 print(';\n')
 
 print('\n')
 print('opcode:\n')
 for i in range(len(tokens)):
-    print(tokens[i] + ' {$$ = construct_value_opcode(' + opcodes[i] + ', ' + str(i) + ', NULL); add_opcode($$);\n // printf("'+tokens[i]+'\\n"); \n }');
+    print(tokens[i] + ' { \n\
+              $$ = construct_value_opcode(' + opcodes[i] + ', ' + str(i) + ', NULL); \n\
+              add_opcode($$); \n\
+              // printf("'+tokens[i]+'\\n"); \n\
+          }');
     if i != len(tokens) - 1:
         print('|')
 
@@ -83,9 +146,18 @@ print(';\n')
 
 print('%%\n')
 
-print('int yyerror (const char *error) {\n\tfprintf(stderr, "%s on line %d\\n", error, yylineno);\n\texit(-1);\n}');
-print('void register_identifier_definition(value_t* opcode){\n\tif(result_indices[opcode->operation_number] >= 0){\n\t\t \
-      value_t* v;\n\t\tget_value_in_chain(&v, result_indices[opcode->operation_number], opcode);\n\t\tv->type = VALUE_TYPE_IDENTIFIER_DEFINITION;add_future_identifier_definition(v->string); \n\t}\n}')
+print('int yyerror (const char *error) { \n\
+          fprintf(stderr, "%s on line %d\\n", error, yylineno); \n\
+          exit(-1); \n\
+      }');
+print('void register_identifier_definition(value_t* opcode){ \n\
+          if (result_indices[opcode->operation_number] >= 0){\n\
+              value_t* v; \n\
+              get_value_in_chain(&v, result_indices[opcode->operation_number], opcode); \n\
+              v->type = VALUE_TYPE_IDENTIFIER_DEFINITION; \n\
+              add_future_identifier_definition(v->string); \n\
+          } \n\
+      }')
 enum_file.close();
 enum_value_file.close();
 

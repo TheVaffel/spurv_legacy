@@ -1,29 +1,38 @@
-header = '%{\n' + \
-'#include <y.tab.hpp>\n' + \
-'#include <spurv_compiler.h>\n' + \
-'%}\n' + \
-'%option noyywrap\n' + \
-'%option array\n' + \
-'%option yylineno\n' + \
-'DIGIT [0-9]\n' + \
-'LETTER [a-zA-Z_]\n' + \
-'%%\n' + \
-'[ \\t\\r\\v] ; // Whitespace\n' + \
-'"//".*\\n+ ; // Line comments\n' + \
-'\\n+ {  return NEWLINE;}\n' + \
-'= {return EQUALS;}\n'
+header = '%{ \n\
+#include <y.tab.hpp> \n\
+#include <spurv_compiler.h> \n\
+%} \n\
+%option noyywrap \n\
+%option array \n\
+%option yylineno \n\
+DIGIT [0-9] \n\
+LETTER [a-zA-Z_] \n\
+%%\n\
+[ \\t\\r\\v] ; // Whitespace \n\
+"//".*\\n+ ; // Line comments \n\
+\\n+ {  return NEWLINE;} \n\
+= {return EQUALS;} \n'
  
 
-footer = '{DIGIT}+  { return NUMBER;}\n' + \
-'\\"(\\\\.|[^\\\\"])*\\" { return STRING;}\n' + \
-'#header {return HEADER_KEYWORD;}\n' + \
-'(#out|#in) {return HEADER_IO_KEYWORD;}\n' + \
-'(VERTEX_SHADER|FRAGMENT_SHADER|COMPUTE_SHADER) {return HEADER_CLASS;}\n' + \
-'(u|i)(-?)({DIGIT}+) {register_constant(yytext); return IDENTIFIER;}\n' + \
-'f({DIGIT}+)\\.({DIGIT}+) {register_constant(yytext); return IDENTIFIER;}\n' + \
-'{LETTER}({LETTER}|{DIGIT})* { return IDENTIFIER;}\n' + \
-'.  {\n\tfprintf(stderr, "Unrecognized token %s\\n", yytext);exit(-1);\n}\n' + \
-'%%'
+footer = '{DIGIT}+  { return NUMBER;} \n\
+\\"(\\\\.|[^\\\\"])*\\" { return STRING;} \n\
+#header {return HEADER_KEYWORD;} \n\
+(#out|#in) {return HEADER_IO_KEYWORD;} \n\
+(VERTEX_SHADER|FRAGMENT_SHADER|COMPUTE_SHADER) {return HEADER_CLASS;} \n\
+(u|i)(-?)({DIGIT}+) { \n\
+                        register_constant(yytext); \n\
+                        return IDENTIFIER; \n\
+                    } \n\
+f({DIGIT}+)\\.({DIGIT}+) { \n\
+                             register_constant(yytext); \n\
+                             return IDENTIFIER; \n\
+                         } \n\
+{LETTER}({LETTER}|{DIGIT})* { return IDENTIFIER;} \n\
+.  { \n\
+    fprintf(stderr, "Unrecognized token %s\\n", yytext); \n\
+    exit(-1); \n\
+   } \n\
+%%'
 
 spec_dir = 'spirv_spec/'
 
