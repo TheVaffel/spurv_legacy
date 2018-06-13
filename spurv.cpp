@@ -9,7 +9,6 @@
 #include <string> // std::string
 #include <stdexcept> // std::out_of_range
 
-
 extern FILE* yyin;
 
 
@@ -139,11 +138,16 @@ bool is_identifier_to_be_defined(const char* str){
 static uint32_t identifier_num = 1;
 // Note: Will not register if already registered, making identifier handling somewhat easier
 void register_identifier(const char* string){
-  // Will not reinsert existing keys
   identifiers.insert(std::pair<std::string, uint32_t>(std::string(string), identifier_num++));
+#ifdef DEBUG
+  printf("Registered %s with key %d\n", string, identifiers[string]);
+#endif
 }
 
 int get_identifier_number(const char* string){
+  if(identifiers.find(string) == identifiers.end()){
+    register_identifier(string);
+  }
   return identifiers[string];
 }
 
@@ -188,6 +192,12 @@ std::vector<uint32_t>* binary;
 
 void add_int_to_binary(uint32_t integer){
   binary->push_back(integer);
+}
+
+void add_ints_to_binary(std::initializer_list<uint32_t> l){
+  for(int i = 0; i < l.size(); i++){
+    add_int_to_binary(*(std::begin(l) + i));
+  }
 }
 
 void add_string(const char* string){
@@ -307,14 +317,33 @@ void add_header_to_binary(value_t* header){
       add_int_to_binary((3 << 16) | 16);
       add_int_to_binary(identifiers[entry_name]);
       add_int_to_binary(7);
-    }else if(is_vertex_shader){
-      output_identifiers.push_back({"p_vec4_output", "_Position"});
-      output_identifiers.push_back({"p_float32_output", "_PointSize"});
 
-      register_identifier("p_vec4_output");
-      register_identifier("p_float32_output");
+      register_identifier("_FragCoord");
+
+      // decorate _FragCoord BuiltIn FragCoord
+      add_int_to_binary((4 << 16) | 71);
+      add_int_to_binary(identifiers["_FragCoord"]);
+      add_int_to_binary(11);
+      add_int_to_binary(15);
+      
+    }else if(is_vertex_shader){
+      
       register_identifier("_Position");
       register_identifier("_PointSize");
+      // register_identifier("_ClipDistance");
+      // register_identifier("_CullDistance");
+
+      // decorate _Position Builtin Position
+      add_ints_to_binary({(4 << 16) | 71, identifiers["_Position"], 11, 0});
+
+      // decorate _PointSize BuiltIn PointSize
+      add_ints_to_binary({(4 << 16) | 71, identifiers["_PointSize"], 11, 1});
+      
+      // decorate _ClipDistance BuiltIn ClipDistance
+      // add_ints_to_binary({(4 << 16) | 71, identifiers["_ClipDistance"], 11, 3});
+      
+      // decorate _CullDistance BuiltIn CullDistance
+      // add_ints_to_binary({(4 << 16) | 71, identifiers["_CullDistance"], 11, 4});
     }
 
     // decorate <attribute> Location <index>
@@ -341,11 +370,13 @@ void declare_necessary_implicit_ids(){
   for(; map_it != identifiers.end(); map_it++){
     if(!is_identifier_to_be_defined((*map_it).first.c_str()) &&
        !is_identifier_defined((*map_it).first.c_str())){
+      
       if(is_implicit_id((*map_it).first.c_str())){
 	add_implicit_identifier((*map_it).first);
       }else if(constant_identifiers.find((*map_it).first) == constant_identifiers.end()){
 	printf("Identifier %s was not defined, and is not an implicit type\n", (*map_it).first.c_str());
       }
+      
     }
   }
 
@@ -495,15 +526,15 @@ namespace spurv{
 
     (*binary)[bound_index] = identifier_num;
 
-
-    // Handy for debugging
-    /*for(int i = 0; i < binary->size(); i++){
+#ifdef DEBUG
+    for(int i = 0; i < binary->size(); i++){
       if((*binary)[i] >= 1 << 16){
 	printf("%d | %d\n", (*binary)[i] >> 16, (*binary)[i] & ((1 << 16) - 1));
       }else{
 	printf("%d\n", (*binary)[i]);
       }
-      }*/
+    }
+#endif // DEBUG
   }
 
 

@@ -3,7 +3,13 @@
 
 #define IMPLICIT_TYPES_MAX_NUM_ADDITIONAL_ARGUMENTS 10
 
+typedef enum e {
+  E_VAR,
+  E_TYPE,
+} id_type;
+
 typedef struct s {
+  id_type type;
   int opcode;
   char* dependency;
   int num_additional_arguments;

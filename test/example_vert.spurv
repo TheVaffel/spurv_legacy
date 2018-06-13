@@ -1,14 +1,17 @@
-capability Shader
-imp = ext_inst_import "GLSL.std.450"
-memory_model Logical GLSL450
-entry_point Vertex main "main" vert outColor color
+#header VERTEX_SHADER
+#in vec4 vert
+#in vec4 color
+#out vec4 outColor
 
-decorate _Position BuiltIn Position
-decorate _PointSize BuiltIn PointSize
-// #header VERTEX_SHADER
-// #in vec4 vert
-// #in vec4 color
-// #out vec4 outColor
+// The above is a substitution for all this:
+
+// capability Shader
+// imp = ext_inst_import "GLSL.std.450"
+// memory_model Logical GLSL450
+// entry_point Vertex main "main" vert outColor color
+
+// decorate _Position BuiltIn Position
+// decorate _PointSize BuiltIn PointSize
 
 // '3' is for ClipDistance (name collision, so we write it as a literal)
 // decorate _ClipDistance BuiltIn 3
@@ -16,17 +19,17 @@ decorate _PointSize BuiltIn PointSize
 // '4' is for CullDistance
 // decorate _CurrDistance BuiltIn 4
 
-decorate vert Location 0
-decorate outColor Location 0
-decorate color Location 1
+// decorate vert Location 0
+// decorate outColor Location 0
+// decorate color Location 1
 
-_Position = variable p_vec4_output Output
-_PointSize = variable p_float32_output Output	
+// _Position = variable p_vec4_output Output
+// _PointSize = variable p_float32_output Output	
 
-vert = variable p_vec4_input Input
+// vert = variable p_vec4_input Input
 
-outColor = variable p_vec4_output Output
-color = variable p_vec4_input Input
+// outColor = variable p_vec4_output Output
+// color = variable p_vec4_input Input
 
 int_0 = constant int 0
 

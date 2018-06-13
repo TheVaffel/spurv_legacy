@@ -15,25 +15,33 @@ void implicit_ids_init(){
   initialized = 1;
   
   std::pair<std::string, id_definition_data> data_types[] = {
-    {"void", {19, NULL, 0}},
-    {"bool", {20, NULL, 0}},
-    {"int", {21, NULL, 2, {32, 1}}},
-    {"int32", {21, NULL, 2, {32, 1}}},
-    {"int64", {21, NULL, 2, {64, 1}}},
-    {"uint32", {21, NULL, 2, {32, 0}}},
-    {"uint64", {21, NULL, 2, {64, 0}}},
+    {"void", {E_TYPE, 19, NULL, 0}},
+    {"bool", {E_TYPE, 20, NULL, 0}},
+    {"int", {E_TYPE, 21, NULL, 2, {32, 1}}},
+    {"int32", {E_TYPE, 21, NULL, 2, {32, 1}}},
+    {"int64", {E_TYPE, 21, NULL, 2, {64, 1}}},
+    {"uint32", {E_TYPE, 21, NULL, 2, {32, 0}}},
+    {"uint64", {E_TYPE, 21, NULL, 2, {64, 0}}},
     // {"float", {22, NULL, 1, {32}}}, // This one really messes up when used with float32 (not allowed)
-    {"float32", {22, NULL, 1, {32}}},
-    {"float64", {22, NULL, 1, {64}}},
+    {"float32", {E_TYPE, 22, NULL, 1, {32}}},
+    {"float64", {E_TYPE, 22, NULL, 1, {64}}},
     // -1 in argument shall be substituted by dependency identifier
-    // We use strdup to make these homogenous with the pointer versions of the added later
-    {"vec2", {23, strdup("float32"), 2, {-1, 2}}},
-    {"vec3", {23, strdup("float32"), 2, {-1, 3}}},
-    {"vec4", {23, strdup("float32"), 2, {-1, 4}}},
+    // We use strdup to make these homogenous with the pointer versions added later
+    {"vec2", {E_TYPE, 23, strdup("float32"), 2, {-1, 2}}},
+    {"vec3", {E_TYPE, 23, strdup("float32"), 2, {-1, 3}}},
+    {"vec4", {E_TYPE, 23, strdup("float32"), 2, {-1, 4}}},
   };
 
   std::pair<std::string, id_definition_data> function_types[] = {
-    {"f_void", {33, strdup("void"), 1, {-1}}}
+    {"f_void", {E_TYPE, 33, strdup("void"), 1, {-1}}}
+  };
+
+  std::pair<std::string, id_definition_data> builtin_vars[] = {
+    {"_FragCoord", {E_VAR, 59, strdup("p_vec4_input"), 3, {-1, -2, 1}}},
+    {"_Position", {E_VAR, 59, strdup("p_vec4_output"), 3, {-1, -2, 3}}},
+    {"_PointSize", {E_VAR, 59, strdup("p_float32_output"), 3, {-1, -2, 3}}},
+    {"_CullDistance", {E_VAR, 59, strdup("p_float32_output"), 3, {-1, -2, 3}}},
+    {"_ClipDistance", {E_VAR, 59, strdup("p_float32_output"), 3, {-1, -2, 3}}},
   };
   
   
@@ -41,12 +49,16 @@ void implicit_ids_init(){
     implicit_ids.insert(p);
     for(int i = 0; i < num_pointer_versions; i++){
       std::string pointer_name = std::string("p_") + p.first + std::string("_") + pointer_dirs[i];
-      implicit_ids.insert({pointer_name, {32, strdup(p.first.c_str()), 2, {i, -1}}});
+      implicit_ids.insert({pointer_name, {E_TYPE, 32, strdup(p.first.c_str()), 2, {i, -1}}});
     }
   }
 
 
   for(std::pair<std::string, id_definition_data> p: function_types){
+    implicit_ids.insert(p);
+  }
+
+  for(std::pair<std::string, id_definition_data> p: builtin_vars){
     implicit_ids.insert(p);
   }
 }
@@ -85,6 +97,23 @@ void write_type_definition(id_definition_data& d, const char* name){
   }
 }
 
+// For built-in variables (or constants)
+void write_var_definition(id_definition_data& d, const char* name){
+  int size = d.num_additional_arguments + 1;
+
+  add_int_to_binary((size << 16) | d.opcode);
+
+  for(int i = 0; i  < d.num_additional_arguments; i++){
+    if(d.additional_arguments[i] == -1){
+      add_int_to_binary(get_identifier_number(d.dependency));
+    } else if (d.additional_arguments[i] == -2){
+      add_int_to_binary(get_identifier_number(name));
+    } else {
+      add_int_to_binary(d.additional_arguments[i]);
+    }
+  }
+}
+
 
 // Returns true if everything is ok
 bool ensure_dependency_is_in_place(id_definition_data& d){
@@ -117,10 +146,15 @@ void add_implicit_identifier(std::string identifier){
   if(!is_identifier_referenced(identifier.c_str())){
     register_identifier(identifier.c_str());
   }
+  if(d.type == E_TYPE){
+    write_type_definition(d, identifier.c_str());
+  }else if(d.type == E_VAR){
+    write_var_definition(d, identifier.c_str());
+  }else{
+    printf("SPURV: Writing of implicit id type not implemented\n");
+    exit(-1);
+  }
   
-  
-  write_type_definition(d, identifier.c_str());
-
   add_identifier_definition(identifier.c_str());
 }
 
