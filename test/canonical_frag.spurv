@@ -1,0 +1,21 @@
+capability Shader
+a1 = ext_inst_import "GLSL.std.450"
+memory_model Logical GLSL450
+entry_point Fragment umain "main" uoutColor ucolor
+execution_mode umain OriginUpperLeft
+decorate uoutColor Location 0
+decorate ucolor Location 0
+uvoid = type_void
+a3 = type_function uvoid
+ufloat = type_float 32
+uv4float = type_vector ufloat 4
+uptrOutputv4float = type_pointer Output uv4float
+uoutColor = variable uptrOutputv4float Output
+uptrInputv4float = type_pointer Input uv4float
+ucolor = variable uptrInputv4float Input
+umain = function uvoid None a3
+a5 = label
+a12 = load uv4float ucolor
+store uoutColor a12
+return
+function_end
