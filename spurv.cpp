@@ -288,14 +288,27 @@ void add_header_to_binary(value_t* header){
 
     if(is_fragment_shader){
       add_int_to_binary(4); // Fragment
-    }else if(is_vertex_shader){
+
+      
+      register_identifier("_FragCoord");
+    } else if(is_vertex_shader){
       add_int_to_binary(0); // Vertex
+      
+      register_identifier("_Position");
+      register_identifier("_PointSize");
+      // register_identifier("_ClipDistance");
+      // register_identifier("_CullDistance");
+    } else {
+      printf("Entry point shader type not defined for header %s\n", header->string);
+      exit(-1);
     }
+    
     std::string entry_name = "main";
     register_identifier(entry_name.c_str());
     add_identifier_definition(entry_name.c_str());
     add_int_to_binary(identifiers[entry_name]);
     add_string("main");
+    
     for(int i = 0; i < input_identifiers.size(); i++){
       add_int_to_binary(identifiers[input_identifiers[i].second]);
       size++;
@@ -303,6 +316,26 @@ void add_header_to_binary(value_t* header){
     for(int i = 0; i < output_identifiers.size(); i++){
       add_int_to_binary(identifiers[output_identifiers[i].second]);
       size++;
+    }
+
+    if(is_fragment_shader){
+      add_int_to_binary(get_identifier_number("_FragCoord"));
+      size++;
+    } else if(is_vertex_shader){
+      add_int_to_binary(get_identifier_number("_Position"));
+      size++;
+
+      add_int_to_binary(get_identifier_number("_PointSize"));
+      size++;
+
+      // add_int_to_binary(get_identifier_number("_ClipDistance"));
+      // size++;
+
+      // add_int_to_binary(get_identifier_number("_CurrDistance"));
+      // size++;
+    } else {
+      printf("Interface list not defined for header %s\n", header->string);
+      exit(-1);
     }
     
     (*binary)[size_index] |= size << 16;
@@ -313,8 +346,6 @@ void add_header_to_binary(value_t* header){
       add_int_to_binary(identifiers[entry_name]);
       add_int_to_binary(7);
 
-      register_identifier("_FragCoord");
-
       // decorate _FragCoord BuiltIn FragCoord
       add_int_to_binary((4 << 16) | 71);
       add_int_to_binary(identifiers["_FragCoord"]);
@@ -322,11 +353,6 @@ void add_header_to_binary(value_t* header){
       add_int_to_binary(15);
       
     }else if(is_vertex_shader){
-      
-      register_identifier("_Position");
-      register_identifier("_PointSize");
-      // register_identifier("_ClipDistance");
-      // register_identifier("_CullDistance");
 
       // decorate _Position Builtin Position
       add_ints_to_binary({(4 << 16) | 71, identifiers["_Position"], 11, 0});

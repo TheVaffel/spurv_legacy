@@ -150,6 +150,10 @@ void write_type_definition(id_definition_data& d, const char* name){
 
 // For built-in variables (or constants)
 void write_var_definition(id_definition_data& d, const char* name){
+#ifdef DEBUG
+  printf("Writing %s definition\n", name);
+#endif
+  
   int size = d.num_additional_arguments + 1;
 
   add_int_to_binary((size << 16) | d.opcode);
