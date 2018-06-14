@@ -17,7 +17,6 @@ std::set<std::string> to_be_defined_identifiers;
 std::set<std::string> defined_identifiers;
 
 std::map<std::string, uint32_t> identifiers;
-std::set<std::string> constant_identifiers;
 std::vector<std::pair<std::string, std::string> > input_identifiers;
 std::vector<std::pair<std::string, std::string> > output_identifiers;
 
@@ -170,10 +169,6 @@ void register_io_entry(value_t* val){
   destroy_value_tree(val);
 }
 
-
-void register_constant(const char* str){
-  constant_identifiers.insert(str);
-}
 
 int get_string_word_length(const char* string){
   return (strlen(string) + 4) / 4;
@@ -372,15 +367,17 @@ void declare_necessary_implicit_ids(){
        !is_identifier_defined((*map_it).first.c_str())){
       
       if(is_implicit_id((*map_it).first.c_str())){
-	add_implicit_identifier((*map_it).first);
-      }else if(constant_identifiers.find((*map_it).first) == constant_identifiers.end()){
+	output_implicit_identifier((*map_it).first);
+      }else if(!is_registered_constant((*map_it).first)){
 	printf("Identifier %s was not defined, and is not an implicit type\n", (*map_it).first.c_str());
       }
       
     }
   }
 
-  std::set<std::string>::iterator it = constant_identifiers.begin();
+  write_all_constants();
+
+  /*std::set<std::string>::iterator it = constant_identifiers.begin();
 
   for(; it != constant_identifiers.end(); it++){
     id_definition_data data;
@@ -416,7 +413,7 @@ void declare_necessary_implicit_ids(){
     write_constant_definition(data, (*it).c_str());
 
     free(data.dependency); // Keeping it clean..
-  }
+    }*/
 }
 
 void destroy_value_tree(value_t* v){

@@ -40,7 +40,6 @@ void print_value_chain(value_t* value);
 void register_header_definition(value_t* value);
 int get_string_word_length(const char* str);
 
-void register_constant(const char* str);
 void register_io_entry(value_t* v);
 
 void add_identifier_definition(const char* str);

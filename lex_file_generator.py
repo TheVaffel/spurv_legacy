@@ -1,6 +1,7 @@
 header = '%{ \n\
 #include <y.tab.hpp> \n\
 #include <spurv_compiler.h> \n\
+#include <implicit_ids.hpp> \n\
 %} \n\
 %option noyywrap \n\
 %option array \n\
@@ -20,11 +21,11 @@ footer = '{DIGIT}+  { return NUMBER;} \n\
 (#out|#in) {return HEADER_IO_KEYWORD;} \n\
 (VERTEX_SHADER|FRAGMENT_SHADER|COMPUTE_SHADER) {return HEADER_CLASS;} \n\
 (u|i)(-?)({DIGIT}+) { \n\
-                        register_constant(yytext); \n\
+                        add_constant(yytext); \n\
                         return IDENTIFIER; \n\
                     } \n\
 f({DIGIT}+)\\.({DIGIT}+) { \n\
-                             register_constant(yytext); \n\
+                             add_constant(yytext); \n\
                              return IDENTIFIER; \n\
                          } \n\
 {LETTER}({LETTER}|{DIGIT})* { return IDENTIFIER;} \n\

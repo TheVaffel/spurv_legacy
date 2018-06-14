@@ -1,7 +1,10 @@
 #include <implicit_ids.hpp>
 #include <spurv_compiler.h>
 
+#include <set>
+
 std::map<std::string, id_definition_data> implicit_ids;
+std::set<std::string> constants;
 
 const int num_pointer_versions = 13;
 const std::string pointer_dirs[num_pointer_versions] = {"uniform_constant", "input", "uniform", "output", "workgroup",
@@ -60,6 +63,54 @@ void implicit_ids_init(){
 
   for(std::pair<std::string, id_definition_data> p: builtin_vars){
     implicit_ids.insert(p);
+  }
+}
+
+void add_constant(std::string identifier){
+  constants.insert(identifier);
+}
+
+bool is_registered_constant(std::string identifier){
+  return constants.find(identifier) != constants.end();
+}
+
+void create_constant_definition(std::string id, id_definition_data* data){
+  data->opcode = 43; // constant
+
+    
+  register_identifier(id.c_str());
+  add_identifier_definition(id.c_str());
+    
+  float f;
+    
+  switch(id[0]){
+  case 'u':
+    data->dependency = strdup("uint32");
+    data->additional_arguments[0] = atoi(id.c_str() + 1);
+    break;
+  case 'i':
+    data->dependency = strdup("int32");
+    data->additional_arguments[0] = atoi(id.c_str() + 1);
+    break;
+  case 'f':
+    data->dependency = strdup("float32");
+    f = atof(id.c_str() + 1);
+    data->additional_arguments[0] = *((uint32_t*)&f);
+    break;
+  }
+}
+
+void write_all_constants(){
+  for(std::string s : constants){
+    id_definition_data d;
+    create_constant_definition(s, &d);
+
+    if(!ensure_dependency_is_in_place(d)){
+      printf("Constant %s has a dependency defined after use of the constant\n", s.c_str());
+      exit(-1);
+    }
+    printf("Writing constant %s\n", s.c_str());
+    write_constant_definition(d, s.c_str());
   }
 }
 
@@ -123,7 +174,7 @@ bool ensure_dependency_is_in_place(id_definition_data& d){
     if((!dependency_will_be_explicitly_defined)
        && !dependency_is_defined){
 
-      add_implicit_identifier(d.dependency);
+      output_implicit_identifier(d.dependency);
 
     }else if(!dependency_is_defined){
       return false;
@@ -132,7 +183,7 @@ bool ensure_dependency_is_in_place(id_definition_data& d){
   return true;
 }
 
-void add_implicit_identifier(std::string identifier){
+void output_implicit_identifier(std::string identifier){
   if(!initialized){
     implicit_ids_init();
   }
@@ -146,6 +197,7 @@ void add_implicit_identifier(std::string identifier){
   if(!is_identifier_referenced(identifier.c_str())){
     register_identifier(identifier.c_str());
   }
+  
   if(d.type == E_TYPE){
     write_type_definition(d, identifier.c_str());
   }else if(d.type == E_VAR){
@@ -166,4 +218,6 @@ void clear_implicit_id_table(){
     }
   }
   implicit_ids.clear();
+
+  constants.clear();
 }

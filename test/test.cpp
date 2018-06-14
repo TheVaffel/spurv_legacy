@@ -61,7 +61,7 @@ int main(){
 #endif
   spirv.clear();
 
-  spurv::parse_spurv_file("test_frag.spurv", spirv);
+  spurv::parse_spurv_file("example_frag.spurv", spirv);
 
   WingineShader fragmentShader = wg.createShader(spirv, VK_SHADER_STAGE_FRAGMENT_BIT);
 #ifdef DEBUG
