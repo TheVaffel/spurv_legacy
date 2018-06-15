@@ -173,6 +173,8 @@ void write_all_constants(){
     }
 
     write_constant_definition(d, s.c_str());
+
+    free(d.dependency); // Keepin' it clean
   }
 }
 
@@ -306,5 +308,8 @@ void clear_implicit_id_table(){
 
 void reset_constants_and_arrays(){
   constants.clear();
+  for(auto p : array_definitions){
+    delete[] p.second.dependency;
+  }
   array_definitions.clear();
 }
