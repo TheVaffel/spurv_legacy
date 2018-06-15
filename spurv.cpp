@@ -384,7 +384,11 @@ void add_header_to_binary(value_t* header){
   }
 }
 
-void declare_necessary_implicit_ids(){
+void declare_necessary_implicit_ids()
+{
+  write_all_constants();
+
+  write_all_arrays();
   
   std::map<std::string, unsigned int>::iterator map_it = identifiers.begin();
 
@@ -394,14 +398,12 @@ void declare_necessary_implicit_ids(){
       
       if(is_implicit_id((*map_it).first.c_str())){
 	output_implicit_identifier((*map_it).first);
-      }else if(!is_registered_constant((*map_it).first)){
+      }else if(!is_registered_constant((*map_it).first) && !is_registered_array((*map_it).first)){
 	printf("Identifier %s was not defined, and is not an implicit type\n", (*map_it).first.c_str());
       }
       
     }
   }
-
-  write_all_constants();
 
   /*std::set<std::string>::iterator it = constant_identifiers.begin();
 
@@ -475,6 +477,8 @@ void reset_parser(){
 
   input_identifiers.clear();
   output_identifiers.clear();
+
+  reset_constants_and_arrays();
 
   identifier_num = 1;
 }

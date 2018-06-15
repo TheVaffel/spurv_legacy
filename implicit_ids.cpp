@@ -5,6 +5,7 @@
 
 std::map<std::string, id_definition_data> implicit_ids;
 std::set<std::string> constants;
+std::map<std::string, id_definition_data> array_definitions;
 
 const int num_pointer_versions = 13;
 const std::string pointer_dirs[num_pointer_versions] = {"uniform_constant", "input", "uniform", "output", "workgroup",
@@ -66,8 +67,59 @@ void implicit_ids_init(){
   }
 }
 
+char* get_array_type(std::string id) {
+  int i = 0;
+  while(id[i++] != '_');
+  int j = i;
+  while(id[++j] != '_');
+
+  char* cc = new char[j - i + 1];
+
+  int a = 0;
+  for(int k = i; k < j; k++){
+    cc[a++] = id[k];
+  }
+  
+  cc[j - i] = 0;
+  return cc;
+}
+
+int get_array_length(std::string id){
+  int i = 0;
+  while(id[i++] != '_');
+  while(id[i++] != '_');
+  return atoi(id.c_str() + i);
+}
+
+void register_array(std::string id){
+  register_identifier(id.c_str());
+  add_identifier_definition(id.c_str());
+
+  int len = get_array_length(id);
+  char len_const_str[32];
+  const char* len_const_format = "i%d";
+  sprintf(len_const_str, len_const_format, len);
+  register_identifier(len_const_str);
+  add_constant(len_const_str);
+  
+  id_definition_data d;
+  d.opcode = 28; // type_array
+  d.type = E_ARRAY;
+  d.dependency = get_array_type(id);
+  d.num_additional_arguments = 3;
+  d.additional_arguments[0] = -2;
+  d.additional_arguments[1] = -1;
+  d.additional_arguments[2] = get_identifier_number(len_const_str);
+  
+  array_definitions.insert(std::make_pair(id, d));
+}
+
 void add_constant(std::string identifier){
   constants.insert(identifier);
+}
+
+bool is_registered_array(std::string id){
+  return array_definitions.find(id) != array_definitions.end();
 }
 
 bool is_registered_constant(std::string identifier){
@@ -100,6 +152,16 @@ void create_constant_definition(std::string id, id_definition_data* data){
   }
 }
 
+void write_all_arrays(){
+  for(std::pair<std::string, id_definition_data> p : array_definitions){
+    if(!ensure_dependency_is_in_place(p.second)){
+      printf("Dependency %s for %s could not be defined implicitly\n",
+	     p.second.dependency, p.first.c_str());
+    }
+    write_array_definition(p.first, p.second);
+  }
+}
+
 void write_all_constants(){
   for(std::string s : constants){
     id_definition_data d;
@@ -109,7 +171,7 @@ void write_all_constants(){
       printf("Constant %s has a dependency defined after use of the constant\n", s.c_str());
       exit(-1);
     }
-    printf("Writing constant %s\n", s.c_str());
+
     write_constant_definition(d, s.c_str());
   }
 }
@@ -119,6 +181,21 @@ bool is_implicit_id(std::string identifier){
     implicit_ids_init();
   }
   return !(implicit_ids.find(identifier) == implicit_ids.end());
+}
+
+// For arrays
+void write_array_definition(std::string name, id_definition_data& d){
+  add_int_to_binary((4 << 16) | d.opcode);
+
+  for(int i = 0; i < d.num_additional_arguments; i++){
+    if(d.additional_arguments[i] == -1){
+      add_int_to_binary(get_identifier_number(d.dependency));
+    }else if(d.additional_arguments[i] == -2){
+      add_int_to_binary(get_identifier_number(name.c_str()));
+    }else {
+      add_int_to_binary(d.additional_arguments[i]);
+    }
+  }
 }
 
 
@@ -216,12 +293,18 @@ void output_implicit_identifier(std::string identifier){
 
 void clear_implicit_id_table(){
   initialized = 0;
+
+  reset_constants_and_arrays();
+  
   for(std::map<std::string, id_definition_data>::iterator it = implicit_ids.begin(); it != implicit_ids.end(); it++){
     if((*it).second.dependency){
       free((*it).second.dependency);
     }
   }
   implicit_ids.clear();
+}
 
+void reset_constants_and_arrays(){
   constants.clear();
+  array_definitions.clear();
 }

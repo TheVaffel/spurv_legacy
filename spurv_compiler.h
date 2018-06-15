@@ -5,6 +5,8 @@
 #include <string.h>
 #include <spurv.h>
 
+// #define DEBUG
+
 extern int yylineno;
 extern char yytext[];
 extern int yylex (void);

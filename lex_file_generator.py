@@ -7,7 +7,8 @@ header = '%{ \n\
 %option array \n\
 %option yylineno \n\
 DIGIT [0-9] \n\
-LETTER [a-zA-Z_] \n\
+LETTER [a-zA-Z] \n\
+ID_LETTER [a-zA-Z_] \n\
 %%\n\
 [ \\t\\r\\v] ; // Whitespace \n\
 "//".*\\n+ ; // Line comments \n\
@@ -28,7 +29,11 @@ f({DIGIT}+)\\.({DIGIT}+) { \n\
                              add_constant(yytext); \n\
                              return IDENTIFIER; \n\
                          } \n\
-{LETTER}({LETTER}|{DIGIT})* { return IDENTIFIER;} \n\
+(arr_)(({LETTER}|{DIGIT})+)(_{DIGIT}+) { \n\
+                                     register_array(yytext); \n\
+                                     return IDENTIFIER; \n\
+                                 } \n\
+{ID_LETTER}({ID_LETTER}|{DIGIT})* { return IDENTIFIER;} \n\
 .  { \n\
     fprintf(stderr, "Unrecognized token %s\\n", yytext); \n\
     exit(-1); \n\
