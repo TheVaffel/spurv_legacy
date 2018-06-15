@@ -2,8 +2,10 @@
 #include <spurv_compiler.h>
 
 #include <set>
+#include <vector>
 
 std::map<std::string, id_definition_data> default_implicit_ids;
+std::vector<char*> trash_list;
 
 const int num_pointer_versions = 13;
 const std::string pointer_dirs[num_pointer_versions] = {"uniform_constant", "input", "uniform", "output", "workgroup",
@@ -13,7 +15,16 @@ const std::string pointer_dirs[num_pointer_versions] = {"uniform_constant", "inp
 static int initialized = 0;
 
 
+char* copy_and_store_string(const char* s){
+  char* ss = strdup(s);
+  trash_list.push_back(ss);
+  return ss;
+}
+
 void implicit_ids_init(){
+  if(initialized){
+    return;
+  }
   
   initialized = 1;
   
@@ -29,22 +40,22 @@ void implicit_ids_init(){
     {"float32", {E_TYPE, 22, NULL, 1, {32}}},
     {"float64", {E_TYPE, 22, NULL, 1, {64}}},
     // -1 in argument shall be substituted by dependency identifier
-    // We use strdup to make these homogenous with the pointer versions added later
-    {"vec2", {E_TYPE, 23, strdup("float32"), 2, {-1, 2}}},
-    {"vec3", {E_TYPE, 23, strdup("float32"), 2, {-1, 3}}},
-    {"vec4", {E_TYPE, 23, strdup("float32"), 2, {-1, 4}}},
+    // We use copy_and_store_string to make these homogenous with the pointer versions added later
+    {"vec2", {E_TYPE, 23, copy_and_store_string("float32"), 2, {-1, 2}}},
+    {"vec3", {E_TYPE, 23, copy_and_store_string("float32"), 2, {-1, 3}}},
+    {"vec4", {E_TYPE, 23, copy_and_store_string("float32"), 2, {-1, 4}}},
   };
 
   std::pair<std::string, id_definition_data> function_types[] = {
-    {"f_void", {E_TYPE, 33, strdup("void"), 1, {-1}}}
+    {"f_void", {E_TYPE, 33, copy_and_store_string("void"), 1, {-1}}}
   };
 
   std::pair<std::string, id_definition_data> builtin_vars[] = {
-    {"_FragCoord", {E_VAR, 59, strdup("p_vec4_input"), 3, {-1, -2, 1}}},
-    {"_Position", {E_VAR, 59, strdup("p_vec4_output"), 3, {-1, -2, 3}}},
-    {"_PointSize", {E_VAR, 59, strdup("p_float32_output"), 3, {-1, -2, 3}}},
-    {"_CullDistance", {E_VAR, 59, strdup("p_arr_float32_1_output"), 3, {-1, -2, 3}}},
-    {"_ClipDistance", {E_VAR, 59, strdup("p_arr_float32_1_output"), 3, {-1, -2, 3}}},
+    {"_FragCoord", {E_VAR, 59, copy_and_store_string("p_vec4_input"), 3, {-1, -2, 1}}},
+    {"_Position", {E_VAR, 59, copy_and_store_string("p_vec4_output"), 3, {-1, -2, 3}}},
+    {"_PointSize", {E_VAR, 59, copy_and_store_string("p_float32_output"), 3, {-1, -2, 3}}},
+    {"_CullDistance", {E_VAR, 59, copy_and_store_string("p_arr_float32_1_output"), 3, {-1, -2, 3}}},
+    {"_ClipDistance", {E_VAR, 59, copy_and_store_string("p_arr_float32_1_output"), 3, {-1, -2, 3}}},
   };
   
   
@@ -68,7 +79,7 @@ char* get_array_type(std::string id) {
   int j = i;
   while(id[++j] != '_');
 
-  char* cc = new char[j - i + 1];
+  char cc[j - i + 1];
 
   int a = 0;
   for(int k = i; k < j; k++){
@@ -76,7 +87,8 @@ char* get_array_type(std::string id) {
   }
   
   cc[j - i] = 0;
-  return cc;
+  
+  return copy_and_store_string(cc);
 }
 
 int get_array_length(std::string id){
@@ -117,7 +129,7 @@ void create_pointer_definition(std::string id, id_definition_data* d){
   
   d->type = E_TYPE;
   d->opcode = 32;
-  d->dependency = strdup(type.c_str());
+  d->dependency = copy_and_store_string(type.c_str());
   d->num_additional_arguments = 2;
   d->additional_arguments[0] = a;
   d->additional_arguments[1] = -1;
@@ -133,15 +145,15 @@ void create_constant_definition(std::string id, id_definition_data* data){
   
   switch(id[0]){
   case 'u':
-    data->dependency = strdup("uint32");
+    data->dependency = copy_and_store_string("uint32");
     data->additional_arguments[0] = atoi(id.c_str() + 1);
     break;
   case 'i':
-    data->dependency = strdup("int32");
+    data->dependency = copy_and_store_string("int32");
     data->additional_arguments[0] = atoi(id.c_str() + 1);
     break;
   case 'f':
-    data->dependency = strdup("float32");
+    data->dependency = copy_and_store_string("float32");
     f = atof(id.c_str() + 1);
     data->additional_arguments[0] = *((uint32_t*)&f);
     break;
@@ -384,10 +396,10 @@ bool output_if_implicit(std::string s){
 void clear_implicit_id_table(){
   initialized = 0;
 
-  for(std::map<std::string, id_definition_data>::iterator it = default_implicit_ids.begin(); it != default_implicit_ids.end(); it++){
-    if((*it).second.dependency){
-      free((*it).second.dependency);
-    }
-  }
   default_implicit_ids.clear();
+
+  for(int i = 0; i < trash_list.size(); i++){
+    free(trash_list[i]);
+  }
+  trash_list.clear();
 }
