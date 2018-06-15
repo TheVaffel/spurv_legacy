@@ -8,7 +8,7 @@ header = '%{ \n\
 %option yylineno \n\
 DIGIT [0-9] \n\
 LETTER [a-zA-Z] \n\
-ID_LETTER [a-zA-Z_] \n\
+ID_LETTER [a-zA-Z_.] \n\
 %%\n\
 [ \\t\\r\\v] ; // Whitespace \n\
 "//".*\\n+ ; // Line comments \n\
@@ -21,18 +21,6 @@ footer = '{DIGIT}+  { return NUMBER;} \n\
 #header {return HEADER_KEYWORD;} \n\
 (#out|#in) {return HEADER_IO_KEYWORD;} \n\
 (VERTEX_SHADER|FRAGMENT_SHADER|COMPUTE_SHADER) {return HEADER_CLASS;} \n\
-(u|i)(-?)({DIGIT}+) { \n\
-                        add_constant(yytext); \n\
-                        return IDENTIFIER; \n\
-                    } \n\
-f({DIGIT}+)\\.({DIGIT}+) { \n\
-                             add_constant(yytext); \n\
-                             return IDENTIFIER; \n\
-                         } \n\
-(arr_)(({LETTER}|{DIGIT})+)(_{DIGIT}+) { \n\
-                                     register_array(yytext); \n\
-                                     return IDENTIFIER; \n\
-                                 } \n\
 {ID_LETTER}({ID_LETTER}|{DIGIT})* { return IDENTIFIER;} \n\
 .  { \n\
     fprintf(stderr, "Unrecognized token %s\\n", yytext); \n\

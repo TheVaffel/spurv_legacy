@@ -296,8 +296,8 @@ void add_header_to_binary(value_t* header){
       
       register_identifier("_Position");
       register_identifier("_PointSize");
-      // register_identifier("_ClipDistance");
-      // register_identifier("_CullDistance");
+      register_identifier("_ClipDistance");
+      register_identifier("_CullDistance");
     } else {
       printf("Entry point shader type not defined for header %s\n", header->string);
       exit(-1);
@@ -328,11 +328,11 @@ void add_header_to_binary(value_t* header){
       add_int_to_binary(get_identifier_number("_PointSize"));
       size++;
 
-      // add_int_to_binary(get_identifier_number("_ClipDistance"));
-      // size++;
+      add_int_to_binary(get_identifier_number("_ClipDistance"));
+      size++;
 
-      // add_int_to_binary(get_identifier_number("_CurrDistance"));
-      // size++;
+      add_int_to_binary(get_identifier_number("_CullDistance"));
+      size++;
     } else {
       printf("Interface list not defined for header %s\n", header->string);
       exit(-1);
@@ -361,10 +361,10 @@ void add_header_to_binary(value_t* header){
       add_ints_to_binary({(4 << 16) | 71, identifiers["_PointSize"], 11, 1});
       
       // decorate _ClipDistance BuiltIn ClipDistance
-      // add_ints_to_binary({(4 << 16) | 71, identifiers["_ClipDistance"], 11, 3});
+      add_ints_to_binary({(4 << 16) | 71, identifiers["_ClipDistance"], 11, 3});
       
       // decorate _CullDistance BuiltIn CullDistance
-      // add_ints_to_binary({(4 << 16) | 71, identifiers["_CullDistance"], 11, 4});
+      add_ints_to_binary({(4 << 16) | 71, identifiers["_CullDistance"], 11, 4});
     }
 
     // decorate <attribute> Location <index>
@@ -386,62 +386,20 @@ void add_header_to_binary(value_t* header){
 
 void declare_necessary_implicit_ids()
 {
-  write_all_constants();
-
-  write_all_arrays();
+  implicit_ids_init();
   
   std::map<std::string, unsigned int>::iterator map_it = identifiers.begin();
 
   for(; map_it != identifiers.end(); map_it++){
     if(!is_identifier_to_be_defined((*map_it).first.c_str()) &&
        !is_identifier_defined((*map_it).first.c_str())){
-      
-      if(is_implicit_id((*map_it).first.c_str())){
-	output_implicit_identifier((*map_it).first);
-      }else if(!is_registered_constant((*map_it).first) && !is_registered_array((*map_it).first)){
+
+      if(!output_if_implicit((*map_it).first)){
 	printf("Identifier %s was not defined, and is not an implicit type\n", (*map_it).first.c_str());
       }
       
     }
   }
-
-  /*std::set<std::string>::iterator it = constant_identifiers.begin();
-
-  for(; it != constant_identifiers.end(); it++){
-    id_definition_data data;
-    data.opcode = 43; // constant
-
-    
-    register_identifier((*it).c_str());
-    add_identifier_definition((*it).c_str());
-    
-    float f;
-    
-    switch((*it)[0]){
-    case 'u':
-      data.dependency = strdup("uint32");
-      data.additional_arguments[0] = atoi((*it).c_str() + 1);
-      break;
-    case 'i':
-      data.dependency = strdup("int32");
-      data.additional_arguments[0] = atoi((*it).c_str() + 1);
-      break;
-    case 'f':
-      data.dependency = strdup("float32");
-      f = atof((*it).c_str() + 1);
-      data.additional_arguments[0] = *((uint32_t*)&f);
-      break;
-    }
-
-    if(!ensure_dependency_is_in_place(data)){
-      printf("Constant %s has a dependency defined after use of the constant\n", (*it).c_str());
-      exit(-1);
-    }
-    
-    write_constant_definition(data, (*it).c_str());
-
-    free(data.dependency); // Keeping it clean..
-    }*/
 }
 
 void destroy_value_tree(value_t* v){
@@ -477,8 +435,6 @@ void reset_parser(){
 
   input_identifiers.clear();
   output_identifiers.clear();
-
-  reset_constants_and_arrays();
 
   identifier_num = 1;
 }
