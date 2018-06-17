@@ -266,14 +266,17 @@ void add_header_to_binary(value_t* header){
     add_int_to_binary((2 << 16) | 17);
     add_int_to_binary(1);
 
-    // GLSL = ext_inst_import "GLSL.std.450"
+    // _GLSL = ext_inst_import "GLSL.std.450"
     const char* imp = "GLSL.std.450";
     int length = get_string_word_length(imp);
     add_int_to_binary(((2 + length) << 16) | 11);
-    std::string import_id_name = "GLSL";
+
+    std::string import_id_name = "_GLSL";
     register_identifier(import_id_name.c_str());
     add_identifier_definition(import_id_name.c_str());
+
     add_int_to_binary(identifiers[import_id_name]);
+    
     add_string(imp);
 
     // memory_model Logical GLSL450
