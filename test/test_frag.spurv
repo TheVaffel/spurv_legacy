@@ -1,0 +1,30 @@
+#header FRAGMENT_SHADER
+#in vec4 color
+#out vec4 outColor
+
+v1 = constant_composite vec4 f1.0 f0.0 f0.0 f1.0
+v2 = constant_composite vec4 f0.0 f1.0 f0.0 f1.0
+
+function void main None f_void
+main_block = label
+
+a = variable p_vec4_function Function
+coord = load vec4 _FragCoord
+sh = vector_shuffle vec2 coord coord 0 1
+tt = composite_construct vec2 f500.0 f500.0
+tt1 = f_sub vec2 sh tt
+tt2 = ext_inst float32 _GLSL Length tt1
+tt3 = f_ord_less_than bool tt2 f400.0
+selection_merge ll None
+	branch_conditional tt3 n0 n1
+n0 = label
+   store a v1
+   branch ll
+n1 = label
+   store a v2
+   branch ll
+ll = label
+last = load vec4 a
+store outColor last
+return
+function_end
