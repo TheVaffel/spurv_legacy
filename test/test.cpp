@@ -54,7 +54,7 @@ int main(){
   std::vector<uint32_t> spirv;
 
   spurv::parse_spurv_file("example_vert.spurv", spirv);
-  WingineShader vertexShader = wg.createShader(spirv, VK_SHADER_STAGE_VERTEX_BIT);
+  WingineShader vertexShader = wg.createShader(spirv, WG_SHADER_STAGE_VERTEX);
   
 #ifdef DEBUG
   printf("Done with vertex shader\n");
@@ -63,7 +63,7 @@ int main(){
 
   spurv::parse_spurv_file("test_frag.spurv", spirv);
 
-  WingineShader fragmentShader = wg.createShader(spirv, VK_SHADER_STAGE_FRAGMENT_BIT);
+  WingineShader fragmentShader = wg.createShader(spirv, WG_SHADER_STAGE_FRAGMENT);
 #ifdef DEBUG
   printf("Done with fragment shader\n");
 #endif
