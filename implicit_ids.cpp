@@ -4,7 +4,7 @@
 #include <set>
 #include <vector>
 
-std::map<std::string, id_definition_data> default_implicit_ids;
+std::map<std::string, id_definition_data_t> default_implicit_ids;
 std::vector<char*> trash_list;
 
 const int num_pointer_versions = 13;
@@ -28,7 +28,7 @@ void implicit_ids_init(){
   
   initialized = 1;
   
-  std::pair<std::string, id_definition_data> data_types[] = {
+  std::pair<std::string, id_definition_data_t> data_types[] = {
     {"void", {E_TYPE, 19, NULL, 0}},
     {"bool", {E_TYPE, 20, NULL, 0}},
     {"int", {E_TYPE, 21, NULL, 2, {32, 1}}},
@@ -46,11 +46,11 @@ void implicit_ids_init(){
     {"vec4", {E_TYPE, 23, copy_and_store_string("float32"), 2, {-1, 4}}},
   };
 
-  std::pair<std::string, id_definition_data> function_types[] = {
+  std::pair<std::string, id_definition_data_t> function_types[] = {
     {"f_void", {E_TYPE, 33, copy_and_store_string("void"), 1, {-1}}}
   };
 
-  std::pair<std::string, id_definition_data> builtin_vars[] = {
+  std::pair<std::string, id_definition_data_t> builtin_vars[] = {
     {"_FragCoord", {E_VAR, 59, copy_and_store_string("p_vec4_input"), 3, {-1, -2, 1}}},
     {"_Position", {E_VAR, 59, copy_and_store_string("p_vec4_output"), 3, {-1, -2, 3}}},
     {"_PointSize", {E_VAR, 59, copy_and_store_string("p_float32_output"), 3, {-1, -2, 3}}},
@@ -59,16 +59,16 @@ void implicit_ids_init(){
   };
   
   
-  for(std::pair<std::string, id_definition_data>& p : data_types){
+  for(std::pair<std::string, id_definition_data_t>& p : data_types){
     default_implicit_ids.insert(p);
   }
 
 
-  for(std::pair<std::string, id_definition_data> p: function_types){
+  for(std::pair<std::string, id_definition_data_t> p: function_types){
     default_implicit_ids.insert(p);
   }
 
-  for(std::pair<std::string, id_definition_data> p: builtin_vars){
+  for(std::pair<std::string, id_definition_data_t> p: builtin_vars){
     default_implicit_ids.insert(p);
   }
 }
@@ -96,7 +96,7 @@ int get_array_length(std::string id){
   return atoi(id.c_str() + i + 1);
 }
 
-void create_array_definition(std::string id, id_definition_data* d){
+void create_array_definition(std::string id, id_definition_data_t* d){
   int len = get_array_length(id);
   char len_const_str[32];
   const char* len_const_format = "i%d";
@@ -112,7 +112,7 @@ void create_array_definition(std::string id, id_definition_data* d){
   d->additional_arguments[2] = get_identifier_number(len_const_str);
 }
 
-void create_pointer_definition(std::string id, id_definition_data* d){
+void create_pointer_definition(std::string id, id_definition_data_t* d){
   int u = id.find_first_of('_');
   int v = id.find_last_of('_');
 
@@ -135,7 +135,7 @@ void create_pointer_definition(std::string id, id_definition_data* d){
   d->additional_arguments[1] = -1;
 }
 
-void create_constant_definition(std::string id, id_definition_data* data){
+void create_constant_definition(std::string id, id_definition_data_t* data){
   data->opcode = 43; // constant
 
   float f;
@@ -161,7 +161,7 @@ void create_constant_definition(std::string id, id_definition_data* data){
 }
 
 // For arrays
-void write_array_definition(id_definition_data& d, const char* name){
+void write_array_definition(id_definition_data_t& d, const char* name){
   add_int_to_binary((4 << 16) | d.opcode);
 
   for(int i = 0; i < d.num_additional_arguments; i++){
@@ -176,7 +176,7 @@ void write_array_definition(id_definition_data& d, const char* name){
 }
 
 // For constants
-void write_constant_definition(id_definition_data& d, const char* name){
+void write_constant_definition(id_definition_data_t& d, const char* name){
   
   add_int_to_binary((4 << 16) | d.opcode);
 
@@ -186,7 +186,7 @@ void write_constant_definition(id_definition_data& d, const char* name){
 }
 
 // For implicit types
-void write_type_definition(id_definition_data& d, const char* name){
+void write_type_definition(id_definition_data_t& d, const char* name){
   int size = d.num_additional_arguments + 2;
   
   add_int_to_binary((size << 16) | d.opcode);
@@ -202,7 +202,7 @@ void write_type_definition(id_definition_data& d, const char* name){
 }
 
 // For built-in variables (or constants)
-void write_var_definition(id_definition_data& d, const char* name){
+void write_var_definition(id_definition_data_t& d, const char* name){
   int size = d.num_additional_arguments + 1;
 
   add_int_to_binary((size << 16) | d.opcode);
@@ -220,7 +220,7 @@ void write_var_definition(id_definition_data& d, const char* name){
 
 
 // Returns true if everything is ok
-bool ensure_dependency_is_in_place(id_definition_data& d){
+bool ensure_dependency_is_in_place(id_definition_data_t& d){
   if(d.dependency){
     bool dependency_will_be_explicitly_defined = is_identifier_to_be_defined(d.dependency);
     bool dependency_is_defined = is_identifier_defined(d.dependency);
@@ -245,12 +245,12 @@ void output_array_length_constant(std::string s){
   sprintf(len_str, len_format, get_array_length(s));
   std::string ds(len_str);
   
-  id_definition_data d;
+  id_definition_data_t d;
   create_constant_definition(ds, &d);
   output_implicit(ds, d);
 }
 
-void output_implicit(std::string identifier, id_definition_data& data){
+void output_implicit(std::string identifier, id_definition_data_t& data){
   // printf("Ensuring dependency of \"%s\"\n", identifier.c_str());
   if(!ensure_dependency_is_in_place(data)){
     printf("Defining dependencies of an implicitly defined id not allowed after use of implicit id (you cannot define %s after reference of %s)\n", data.dependency, identifier.c_str());
@@ -370,7 +370,7 @@ bool is_constant_implicit(std::string s){
 
 bool output_if_implicit(std::string s){
   
-  id_definition_data d;
+  id_definition_data_t d;
   if(is_default_implicit(s)){
     // printf("Found %s as default implicit\n", s.c_str());
     output_implicit(s, default_implicit_ids[s]);

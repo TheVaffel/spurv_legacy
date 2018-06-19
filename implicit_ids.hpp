@@ -17,7 +17,7 @@ typedef struct s {
   char* dependency;
   int num_additional_arguments;
   int additional_arguments[IMPLICIT_TYPES_MAX_NUM_ADDITIONAL_ARGUMENTS];
-} id_definition_data;
+} id_definition_data_t;
 
 
 void implicit_ids_init();
@@ -26,19 +26,19 @@ void write_all_arrays();
 
 void write_all_constants();
 
-void write_array_definition(id_definition_data& data, const char* str);
+void write_array_definition(id_definition_data_t& data, const char* str);
 
-void write_type_definition(id_definition_data& data, const char* str);
+void write_type_definition(id_definition_data_t& data, const char* str);
 
-void write_constant_definition(id_definition_data& data, const char* str);
+void write_constant_definition(id_definition_data_t& data, const char* str);
 
-void output_implicit(std::string identifier, id_definition_data& data);
+void output_implicit(std::string identifier, id_definition_data_t& data);
 
-void create_pointer_definition(std::string id, id_definition_data* def);
-void create_constant_definition(std::string id, id_definition_data* def);
-void create_array_definition(std::string id, id_definition_data* def);
+void create_pointer_definition(std::string id, id_definition_data_t* def);
+void create_constant_definition(std::string id, id_definition_data_t* def);
+void create_array_definition(std::string id, id_definition_data_t* def);
 
-bool ensure_dependency_is_in_place(id_definition_data& d);
+bool ensure_dependency_is_in_place(id_definition_data_t& d);
 
 void clear_implicit_id_table();
 
