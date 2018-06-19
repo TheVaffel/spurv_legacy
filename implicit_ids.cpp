@@ -321,10 +321,14 @@ bool is_pointer_implicit(std::string s){
   int v = s.find_last_of('_');
   
   if(u > -1 && v > u && s.substr(0, 2) == "p_"){
-    std::string storage = s.substr(v + 1);
     int ok = 0;
     for(int i = 0; i < num_pointer_versions; i++){
-      if(pointer_dirs[i] == storage){
+      int l = pointer_dirs[i].length();
+      if(s.length() < l + 4){
+	continue;
+      }
+      std::string storage_suffix = s.substr(s.length() - l);
+      if(pointer_dirs[i] == storage_suffix && s[s.length() - l - 1] == '_'){
 	ok = 1;
 	break;
       }
