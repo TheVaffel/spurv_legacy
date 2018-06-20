@@ -8,7 +8,7 @@ header = '%{ \n\
 %option yylineno \n\
 DIGIT [0-9] \n\
 LETTER [a-zA-Z] \n\
-ID_LETTER [a-zA-Z_.] \n\
+ID_LETTER [a-zA-Z_.-] \n\
 %%\n\
 [ \\t\\r\\v] ; // Whitespace \n\
 "//".*\\n+ ; // Line comments \n\
