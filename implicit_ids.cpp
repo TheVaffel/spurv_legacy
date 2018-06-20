@@ -1,5 +1,6 @@
-#include <implicit_ids.hpp>
 #include <spurv_compiler.h>
+#include <implicit_ids.hpp>
+
 
 #include <set>
 #include <vector>
@@ -44,6 +45,9 @@ void implicit_ids_init(){
     {"vec2", {E_TYPE, 23, copy_and_store_string("float32"), 2, {-1, 2}}},
     {"vec3", {E_TYPE, 23, copy_and_store_string("float32"), 2, {-1, 3}}},
     {"vec4", {E_TYPE, 23, copy_and_store_string("float32"), 2, {-1, 4}}},
+    {"mat2", {E_TYPE, 24, copy_and_store_string("vec2"), 2, {-1, 2}}},
+    {"mat3", {E_TYPE, 24, copy_and_store_string("vec3"), 2, {-1, 3}}},
+    {"mat4", {E_TYPE, 24, copy_and_store_string("vec4"), 2, {-1, 4}}}
   };
 
   std::pair<std::string, id_definition_data_t> function_types[] = {
@@ -94,6 +98,14 @@ char* get_array_type(std::string id) {
 int get_array_length(std::string id){
   int i = id.find_last_of('_');
   return atoi(id.c_str() + i + 1);
+}
+
+void create_simple_struct_definition(std::string id, id_definition_data_t* d){
+  d->opcode = 30;
+  d->type = E_TYPE;
+  d->dependency = copy_and_store_string(id.substr(1).c_str());
+  d->num_additional_arguments = 1; // Only one member in simple struct
+  d->additional_arguments[0] = -1;
 }
 
 void create_array_definition(std::string id, id_definition_data_t* d){
@@ -316,6 +328,14 @@ bool is_array_implicit(std::string s){
   return false;
 }
 
+bool is_simple_struct_implicit(std::string s){
+  if(s[0] == '$' && is_default_implicit(s.substr(1))){
+    return true;
+  }
+
+  return false;
+}
+
 bool is_pointer_implicit(std::string s){
   int u = s.find_first_of('_');
   int v = s.find_last_of('_');
@@ -338,7 +358,8 @@ bool is_pointer_implicit(std::string s){
     }
 
     std::string type_s = s.substr(u + 1, v - u - 1);
-    if(is_default_implicit(type_s) || is_array_implicit(type_s) || is_pointer_implicit(type_s)){
+    if(is_default_implicit(type_s) || is_array_implicit(type_s) ||
+       is_pointer_implicit(type_s) || is_simple_struct_implicit(type_s)){
       return true;
     }
   }
@@ -386,6 +407,10 @@ bool output_if_implicit(std::string s){
   } else if(is_pointer_implicit(s)){
     // printf("Found %s as pointer implicit\n", s.c_str());
     create_pointer_definition(s, &d);
+    output_implicit(s, d);
+  } else if(is_simple_struct_implicit(s)) {
+
+    create_simple_struct_definition(s, &d);
     output_implicit(s, d);
   } else {
     //printf("%s not found as an implicit\n", s.c_str());

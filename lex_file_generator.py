@@ -20,6 +20,7 @@ footer = '{DIGIT}+  { return NUMBER;} \n\
 \\"(\\\\.|[^\\\\"])*\\" { return STRING;} \n\
 #header {return HEADER_KEYWORD;} \n\
 (#out|#in) {return HEADER_IO_KEYWORD;} \n\
+(#uniform) {return HEADER_UNIFORM_KEYWORD;} \n\
 (VERTEX_SHADER|FRAGMENT_SHADER|COMPUTE_SHADER) {return HEADER_CLASS;} \n\
 {ID_LETTER}({ID_LETTER}|{DIGIT})* { return IDENTIFIER;} \n\
 .  { \n\

@@ -53,7 +53,7 @@ int main(){
 
   std::vector<uint32_t> spirv;
 
-  spurv::parse_spurv_file("example_vert.spurv", spirv);
+  spurv::parse_spurv_file("vertex_uniform.spurv", spirv);
   WingineShader vertexShader = wg.createShader(spirv, WG_SHADER_STAGE_VERTEX);
   
 #ifdef DEBUG
@@ -68,24 +68,39 @@ int main(){
   printf("Done with fragment shader\n");
 #endif
   spirv.clear();
+
+  WingineResourceSetLayout layout = wg.createResourceSetLayout({WG_RESOURCE_TYPE_UNIFORM}, {WG_SHADER_STAGE_VERTEX});
   
-  WinginePipeline colorPipeline = wg.createPipeline(0, NULL,
+  WinginePipeline colorPipeline = wg.createPipeline({layout},
 						    {vertexShader, fragmentShader},
-						    {WG_ATTRIB_FORMAT_4, WG_ATTRIB_FORMAT_4}, true);
+						    {WG_ATTRIB_FORMAT_4}, true);
   WingineObjectGroup colorGroup(wg, colorPipeline);
 
   WingineRenderObject object1(6, {vertexBuffer, colorBuffer}, indexBuffer);
 
-
+  WgUniform colorUniform = wg.createUniform(sizeof(float));
+  
+  WingineResourceSet colorSet = wg.createResourceSet(layout);
+  wg.updateResourceSet(colorSet, {&colorUniform});
+  
   clock_t start_time = clock();
   int count = 0;
 
-
+  float color = 0.2;
+  float dc = 0.01;
+  
   while(win.isOpen()){
     count++;
+
+    color += dc;
+    if(color > 1 || color < 0){
+      dc *= -1;
+    }
+
+    wg.setUniform(colorUniform, &color, sizeof(float)); 
  
     colorGroup.startRecording();
-    colorGroup.recordRendering(object1, {});
+    colorGroup.recordRendering(object1, {colorSet});
     colorGroup.endRecording();
 
 
@@ -112,6 +127,10 @@ int main(){
   wg.destroyBuffer(vertexBuffer);
   wg.destroyBuffer(colorBuffer);
   wg.destroyBuffer(indexBuffer);
+
+  wg.destroyUniform(colorUniform);
+  wg.destroyResourceSet(colorSet);
+  wg.destroyResourceSetLayout(layout);
 
   spurv::clear_spurv();
   

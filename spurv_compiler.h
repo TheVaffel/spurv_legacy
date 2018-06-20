@@ -1,8 +1,11 @@
+#pragma once
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <string>
+
 #include <spurv.h>
 
 // #define DEBUG
@@ -32,6 +35,13 @@ typedef struct v {
   uint64_t operation_number; // Not the same as opCode, just an internal enumeration
 } value_t;
 
+typedef struct un {
+  unsigned int set;
+  unsigned int binding;
+  std::string name;
+  std::string type;
+} uniform_declaration_t;
+
 value_t* get_new_value();
 value_t* construct_value_string(char* str, value_t* next);
 value_t* construct_value_number(int num, value_t* next);
@@ -42,7 +52,7 @@ void print_value_chain(value_t* value);
 void register_header_definition(value_t* value);
 int get_string_word_length(const char* str);
 
-void register_io_entry(value_t* v);
+void register_header_entry(value_t* v);
 
 void add_identifier_definition(const char* str);
 bool is_identifier_defined(const char* str);
@@ -50,12 +60,13 @@ bool is_identifier_defined(const char* str);
 void add_future_identifier_definition(const char* str);
 bool is_identifier_to_be_defined(const char* str);
 
+void add_ints_to_binary(std::initializer_list<uint32_t> l);
 void add_int_to_binary(uint32_t integer);
 void add_string(const char* string);
 
 void add_opcode(value_t* opcode);
 void register_identifier(const char* string);
-int get_identifier_number(const char* string);
+unsigned int get_identifier_number(const char* string);
 bool is_identifier_referenced(const char* string);
 
 int get_value_in_chain(value_t** val, int get_i, value_t* curr);

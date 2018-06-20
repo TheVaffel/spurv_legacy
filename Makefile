@@ -1,10 +1,10 @@
-OBJS = spurv.o lex.yy.o y.tab.o implicit_ids.o
+OBJS = spurv.o lex.yy.o y.tab.o implicit_ids.o uniforms.o
 
 libspurv.a: $(OBJS)
 	ar rvs $@ $^ 
 
 %.o: %.cpp y.tab.cpp
-	g++ -std=c++11 -c $< -o $@ -I .
+	g++ -g -std=c++11 -c $< -o $@ -I .
 
 lex.yy.cpp: spurv.l y.tab.cpp
 	flex  -o $@ $<

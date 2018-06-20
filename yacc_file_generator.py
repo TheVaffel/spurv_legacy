@@ -28,9 +28,12 @@ print('%token IDENTIFIER')
 print('%token NUMBER')
 print('%token STRING')
 print('%token EQUALS')
+
 print('%token HEADER_KEYWORD')
 print('%token HEADER_CLASS')
 print('%token HEADER_IO_KEYWORD')
+print('%token HEADER_UNIFORM_KEYWORD')
+
 print('\n')
 
 for token in tokens:
@@ -42,25 +45,34 @@ for enum in enums:
 print('\n%%\n')
 
 print('program: header body {} | body {};')
-print('header: HEADER_KEYWORD header_name NEWLINE header_io_list \n\
+print('header: HEADER_KEYWORD header_name NEWLINE header_subentry_list \n\
       { \n\
           $$ = $2; \n\
           $$->next = $3; \n\
           register_header_definition($$); \n\
       }; \n')
 
-print('header_io_list: header_io_list io_entry \n\
+print('header_subentry_list: header_subentry_list header_subentry \n\
       { \n\
-          register_io_entry($2);} | \n\
-          io_entry {register_io_entry($1); \n\
+          register_header_entry($2);} | \n\
+          header_subentry {register_header_entry($1); \n\
       }; \n')
 
-print('io_entry: io_keyword_reference identifier_reference identifier_reference NEWLINE \n\
+print('header_subentry: io_keyword_reference identifier_reference identifier_reference NEWLINE \n\
       { \n\
           $$ = $1; \n\
           $1->next = $2; \n\
           $2->next = $3; \n\
           add_future_identifier_definition($3->string); \n\
+      } \n\
+      | uniform_keyword_reference number_reference number_reference identifier_reference identifier_reference NEWLINE \n\
+      { \n\
+          $$ = $1; \n\
+          $1->next = $2; \n\
+          $2->next = $3; \n\
+          $3->next = $4; \n\
+          $4->next = $5; \n\
+          add_future_identifier_definition($5->string); \n\
       }; \n')
 
 print('body: instruction_list {} \n\
@@ -100,8 +112,8 @@ for i in range(len(enums)):
           }')
     print('|')
 
-print('NUMBER { \n\
-      $$ = construct_value_number(strtol(yytext,NULL, 10), NULL); \n\
+print('number_reference { \n\
+      $$ = $1; \n\
       } | \n');
 
 print('STRING { \n\
@@ -120,11 +132,18 @@ print('identifier_reference: IDENTIFIER { \n\
           register_identifier($$->string); \n\
       }');
 
+print('number_reference: NUMBER { \n\
+          $$ = construct_value_number(strtol(yytext,NULL, 10), NULL); \n\
+      };')
+
 print('header_name: HEADER_CLASS { \n\
           $$ = construct_value_string(strdup(yytext), NULL); \n\
       };')
 
 print('io_keyword_reference: HEADER_IO_KEYWORD { \n\
+          $$ = construct_value_string(strdup(yytext), NULL); \n\
+      };')
+print('uniform_keyword_reference: HEADER_UNIFORM_KEYWORD { \n\
           $$ = construct_value_string(strdup(yytext), NULL); \n\
       };')
 

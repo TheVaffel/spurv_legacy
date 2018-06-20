@@ -1,6 +1,7 @@
 #include <spurv_compiler.h>
-#include <y.tab.hpp>
 #include <implicit_ids.hpp>
+#include <uniforms.hpp>
+#include <y.tab.hpp>
 
 #include <vector>
 #include <map>
@@ -19,7 +20,7 @@ std::set<std::string> defined_identifiers;
 std::map<std::string, uint32_t> identifiers;
 std::vector<std::pair<std::string, std::string> > input_identifiers;
 std::vector<std::pair<std::string, std::string> > output_identifiers;
-
+std::vector<uniform_declaration_t> uniform_declarations;
 
 value_t* get_new_value(){
   
@@ -143,7 +144,7 @@ void register_identifier(const char* string){
 #endif
 }
 
-int get_identifier_number(const char* string){
+unsigned int get_identifier_number(const char* string){
   if(identifiers.find(string) == identifiers.end()){
     register_identifier(string);
   }
@@ -154,16 +155,32 @@ bool is_identifier_referenced(const char* str){
   return identifiers.find(str) != identifiers.end();
 }
 
-void register_io_entry(value_t* val){
+void register_header_entry(value_t* val){
   std::string s;
-  if(0 == strcmp(val->string, "#out")){
+  if(0 == strcmp(val->string, "#out")) {
     s = std::string("p_") + val->next->string + std::string("_output");
     output_identifiers.push_back(std::make_pair(s, val->next->next->string));
-  }else{ // Assume not #out means #in
+  }else if(0 == strcmp(val->string, "#in")) { 
     s = std::string("p_") + val->next->string + std::string("_input");
     input_identifiers.push_back(std::make_pair(s, val->next->next->string));
-  
+  }else if(0 == strcmp(val->string, "#uniform")) {
+    value_t* curr = val->next;
+    uniform_declaration_t decl;
+    decl.set = curr->number;
+
+    curr = curr->next;
+    decl.binding = curr->number;
+
+    curr = curr->next;
+    decl.type = curr->string;
+
+    curr = curr->next;
+    decl.name = curr->string;
+    s = decl.name;
+
+    uniform_declarations.push_back(decl);
   }
+  
   register_identifier(s.c_str());
 
   destroy_value_tree(val);
@@ -292,7 +309,6 @@ void add_header_to_binary(value_t* header){
     if(is_fragment_shader){
       add_int_to_binary(4); // Fragment
 
-      
       register_identifier("_FragCoord");
     } else if(is_vertex_shader){
       add_int_to_binary(0); // Vertex
@@ -381,8 +397,16 @@ void add_header_to_binary(value_t* header){
       }
     }
 
+    // Appropriately decorate uniforms (and ensure dependencies are declared)
+    for(int i = 0; i < uniform_declarations.size(); i++){
+      register_identifier((std::string("$") + uniform_declarations[i].type).c_str());
+      register_identifier((std::string("p_$") + uniform_declarations[i].type + "_uniform").c_str());
+      register_identifier((std::string("p_") + uniform_declarations[i].type + "_uniform").c_str());
+      register_identifier("i0"); // For access chain (we assume only one member per descriptor)
+      output_decorate_uniform(uniform_declarations[i]);
+    }
   }else{
-    fprintf(stderr, "Support for header class %s not yet implemented!\n", header->string);
+    fprintf(stderr, "Support for header class %s not yet implemented\n", header->string);
     exit(-1);
   }
 }
@@ -438,8 +462,11 @@ void reset_parser(){
 
   input_identifiers.clear();
   output_identifiers.clear();
+  uniform_declarations.clear();
 
   identifier_num = 1;
+
+  yylineno = 0; // A bit ugly, but if it works, it works..
 }
 
 void declare_io_variables(){
@@ -451,11 +478,23 @@ void declare_io_variables(){
     add_int_to_binary(1);
   }
 
+  // variable <type> <identifier> Output
   for(int i = 0; i < output_identifiers.size(); i++){
     add_int_to_binary((4 << 16) | 59);
     add_int_to_binary(identifiers[output_identifiers[i].first]);
     add_int_to_binary(identifiers[output_identifiers[i].second]);
     add_int_to_binary(3);
+  }
+
+  for(int i = 0; i < uniform_declarations.size(); i++){
+    std::string var_type = std::string("p_$") + uniform_declarations[i].type + "_uniform";
+    std::string final_type = std::string("p_") + uniform_declarations[i].type + "_uniform";
+    
+    // variable <type> <name> Uniform
+    add_ints_to_binary({(4 << 16) | 59, get_identifier_number(var_type.c_str()),
+	  get_identifier_number((uniform_declarations[i].name).c_str()),
+	  2});
+
   }
 }
 
@@ -470,6 +509,10 @@ namespace spurv{
     should_reset = 1;
     
     yyin = fopen(file_name, "r");
+    if(yyin == NULL){
+      printf("Could not find file %s\n", file_name);
+      exit(-1);
+    }
   
     yyparse();
 
