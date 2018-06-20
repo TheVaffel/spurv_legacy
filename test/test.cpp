@@ -8,6 +8,8 @@
 
 #include <spurv.h>
 
+// #define UNIFORM_SHADER
+
 using namespace std;
 
 static const float test_vertices[] =
@@ -53,7 +55,13 @@ int main(){
 
   std::vector<uint32_t> spirv;
 
+
+#ifdef UNIFORM_SHADER
   spurv::parse_spurv_file("vertex_uniform.spurv", spirv);
+#else
+  spurv::parse_spurv_file("example_vert.spurv", spirv);
+#endif // UNIFORM_SHADER
+  
   WingineShader vertexShader = wg.createShader(spirv, WG_SHADER_STAGE_VERTEX);
   
 #ifdef DEBUG
@@ -69,39 +77,64 @@ int main(){
 #endif
   spirv.clear();
 
-  WingineResourceSetLayout layout = wg.createResourceSetLayout({WG_RESOURCE_TYPE_UNIFORM}, {WG_SHADER_STAGE_VERTEX});
   
-  WinginePipeline colorPipeline = wg.createPipeline({layout},
-						    {vertexShader, fragmentShader},
-						    {WG_ATTRIB_FORMAT_4}, true);
-  WingineObjectGroup colorGroup(wg, colorPipeline);
 
-  WingineRenderObject object1(6, {vertexBuffer, colorBuffer}, indexBuffer);
-
+#ifdef UNIFORM_SHADER
+  
+  float color = 0.2;
+  float dc = 0.01;
+  
+  WingineResourceSetLayout layout = wg.createResourceSetLayout({WG_RESOURCE_TYPE_UNIFORM},
+							       {WG_SHADER_STAGE_VERTEX});
+  
   WgUniform colorUniform = wg.createUniform(sizeof(float));
   
   WingineResourceSet colorSet = wg.createResourceSet(layout);
   wg.updateResourceSet(colorSet, {&colorUniform});
   
+  WinginePipeline colorPipeline = wg.createPipeline({layout},
+						    {vertexShader, fragmentShader},	    
+						    {WG_ATTRIB_FORMAT_4},
+						    true);
+  
+#else // UNIFORM_SHADER
+  
+  WinginePipeline colorPipeline = wg.createPipeline({},
+						    {vertexShader, fragmentShader},
+						    {WG_ATTRIB_FORMAT_4, WG_ATTRIB_FORMAT_4},
+						    true);
+  
+#endif // UNIFORM_SHADER
+						    
+  WingineObjectGroup colorGroup(wg, colorPipeline);
+
+  WingineRenderObject object1(6, {vertexBuffer, colorBuffer}, indexBuffer);
+
+  
   clock_t start_time = clock();
   int count = 0;
 
-  float color = 0.2;
-  float dc = 0.01;
-  
   while(win.isOpen()){
     count++;
 
+#ifdef UNIFORM_SHADER
     color += dc;
     if(color > 1 || color < 0){
       dc *= -1;
     }
-
+    
     wg.setUniform(colorUniform, &color, sizeof(float)); 
  
     colorGroup.startRecording();
     colorGroup.recordRendering(object1, {colorSet});
     colorGroup.endRecording();
+#else
+    
+    colorGroup.startRecording();
+    colorGroup.recordRendering(object1, {});
+    colorGroup.endRecording();
+
+#endif // UNIFORM_SHADER
 
 
     wg.present();
@@ -128,10 +161,12 @@ int main(){
   wg.destroyBuffer(colorBuffer);
   wg.destroyBuffer(indexBuffer);
 
+#ifdef UNIFORM_SHADER
   wg.destroyUniform(colorUniform);
   wg.destroyResourceSet(colorSet);
   wg.destroyResourceSetLayout(layout);
-
+#endif // UNIFORM_SHADER
+  
   spurv::clear_spurv();
   
   return 0;

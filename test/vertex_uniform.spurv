@@ -1,0 +1,20 @@
+#header VERTEX_SHADER
+#in vec4 pos
+#out vec4 color
+#uniform 0 0 float32 ucol
+
+main = function void None f_void
+fs = label
+nvert = load vec4 pos
+store _Position nvert
+
+t1 = access_chain p_float32_uniform ucol i0
+
+loaded_colval = load float32 t1
+
+out_col = composite_construct vec4 loaded_colval loaded_colval loaded_colval f1.0
+store color out_col
+
+return
+
+function_end
