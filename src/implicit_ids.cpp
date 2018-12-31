@@ -26,9 +26,9 @@ void implicit_ids_init(){
   if(initialized){
     return;
   }
-  
+
   initialized = 1;
-  
+
   std::pair<std::string, id_definition_data_t> data_types[] = {
     {"void", {E_TYPE, 19, NULL, 0}},
     {"bool", {E_TYPE, 20, NULL, 0}},
@@ -61,8 +61,8 @@ void implicit_ids_init(){
     {"_CullDistance", {E_VAR, 59, copy_and_store_string("p_arr_float32_1_output"), 3, {-1, -2, 3}}},
     {"_ClipDistance", {E_VAR, 59, copy_and_store_string("p_arr_float32_1_output"), 3, {-1, -2, 3}}},
   };
-  
-  
+
+
   for(std::pair<std::string, id_definition_data_t>& p : data_types){
     default_implicit_ids.insert(p);
   }
@@ -83,16 +83,21 @@ char* get_array_type(std::string id) {
   int j = i;
   while(id[++j] != '_');
 
+	/*
   char cc[j - i + 1];
 
   int a = 0;
   for(int k = i; k < j; k++){
     cc[a++] = id[k];
   }
-  
-  cc[j - i] = 0;
-  
-  return copy_and_store_string(cc);
+  */
+
+	// Double check this?
+	std::string str2 = id.substr(i, j - i);
+
+  // cc[j - i] = 0;
+
+  return copy_and_store_string(str2.c_str());
 }
 
 int get_array_length(std::string id){
@@ -114,7 +119,7 @@ void create_array_definition(std::string id, id_definition_data_t* d){
   const char* len_const_format = "i%d";
   sprintf(len_const_str, len_const_format, len);
   register_identifier(len_const_str);
-  
+
   d->opcode = 28; // type_array
   d->type = E_ARRAY;
   d->dependency = get_array_type(id);
@@ -138,7 +143,7 @@ void create_pointer_definition(std::string id, id_definition_data_t* d){
       break;
     }
   }
-  
+
   d->type = E_TYPE;
   d->opcode = 32;
   d->dependency = copy_and_store_string(type.c_str());
@@ -154,7 +159,7 @@ void create_constant_definition(std::string id, id_definition_data_t* data){
 
   data->type = E_CONSTANT;
   data->num_additional_arguments = 1;
-  
+
   switch(id[0]){
   case 'u':
     data->dependency = copy_and_store_string("uint32");
@@ -189,7 +194,7 @@ void write_array_definition(id_definition_data_t& d, const char* name){
 
 // For constants
 void write_constant_definition(id_definition_data_t& d, const char* name){
-  
+
   add_int_to_binary((4 << 16) | d.opcode);
 
   add_int_to_binary(get_identifier_number(d.dependency)); // Assume this is the type is always second argument...
@@ -200,9 +205,9 @@ void write_constant_definition(id_definition_data_t& d, const char* name){
 // For implicit types
 void write_type_definition(id_definition_data_t& d, const char* name){
   int size = d.num_additional_arguments + 2;
-  
+
   add_int_to_binary((size << 16) | d.opcode);
-  
+
   add_int_to_binary(get_identifier_number(name));
   for(int i = 0; i < d.num_additional_arguments; i++){
     if(d.additional_arguments[i] == -1){
@@ -238,7 +243,7 @@ bool ensure_dependency_is_in_place(id_definition_data_t& d){
     bool dependency_is_defined = is_identifier_defined(d.dependency);
     if((!dependency_will_be_explicitly_defined)
        && !dependency_is_defined){
-      
+
       if(!output_if_implicit(d.dependency)){
 	printf("Could not output implicit dependency %s\n", d.dependency);
 	exit(-1);
@@ -256,7 +261,7 @@ void output_array_length_constant(std::string s){
   const char* len_format = "i%d";
   sprintf(len_str, len_format, get_array_length(s));
   std::string ds(len_str);
-  
+
   id_definition_data_t d;
   create_constant_definition(ds, &d);
   output_implicit(ds, d);
@@ -302,12 +307,12 @@ bool is_default_implicit(std::string s){
 }
 
 bool is_only_digits(std::string s){
-  for(int i = 0; i < s.length(); i++){
+  for(unsigned int i = 0; i < s.length(); i++){
     if(s[i] > '9' || s[i] < '0'){
       return false;
     }
   }
-  
+
   return true;
 }
 
@@ -319,7 +324,7 @@ bool is_array_implicit(std::string s){
     if(!is_only_digits(num)){
       return false;
     }
-    
+
     std::string type_s = s.substr(u + 1, v - u - 1);
     if(is_default_implicit(type_s) || is_array_implicit(type_s) || is_pointer_implicit(type_s)){
       return true;
@@ -339,10 +344,10 @@ bool is_simple_struct_implicit(std::string s){
 bool is_pointer_implicit(std::string s){
   int u = s.find_first_of('_');
   int v = s.find_last_of('_');
-  
+
   if(u > -1 && v > u && s.substr(0, 2) == "p_"){
     int ok = 0;
-    for(int i = 0; i < num_pointer_versions; i++){
+    for(unsigned int i = 0; i < num_pointer_versions; i++){
       int l = pointer_dirs[i].length();
       if(s.length() < l + 4){
 	continue;
@@ -363,7 +368,7 @@ bool is_pointer_implicit(std::string s){
       return true;
     }
   }
-  
+
   return false;
 }
 
@@ -373,7 +378,7 @@ bool is_constant_implicit(std::string s){
     return is_only_digits(ns);
   }else if(s[0] == 'f'){
     int c = 0;
-    for(int i = 1; i < s.length(); i++){
+    for(unsigned int i = 1; i < s.length(); i++){
       if(s[i] == '.'){
 	c++;
       }else if(s[i] < '0' && s[i] > '9'){
@@ -390,7 +395,7 @@ bool is_constant_implicit(std::string s){
 }
 
 bool output_if_implicit(std::string s){
-  
+
   id_definition_data_t d;
   if(is_default_implicit(s)){
     // printf("Found %s as default implicit\n", s.c_str());
@@ -427,7 +432,7 @@ void clear_implicit_id_table(){
 
   default_implicit_ids.clear();
 
-  for(int i = 0; i < trash_list.size(); i++){
+  for(unsigned int i = 0; i < trash_list.size(); i++){
     free(trash_list[i]);
   }
   trash_list.clear();

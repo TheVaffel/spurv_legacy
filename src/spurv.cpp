@@ -12,6 +12,8 @@
 
 extern FILE* yyin;
 
+// Needed in Windows?
+extern int yyparse ();
 
 // Used to locate identifiers to define implicitly (supporting e.g. void, float etc..)
 std::set<std::string> to_be_defined_identifiers;
@@ -23,7 +25,7 @@ std::vector<std::pair<std::string, std::string> > output_identifiers;
 std::vector<uniform_declaration_t> uniform_declarations;
 
 value_t* get_new_value(){
-  
+
   value_t* value = (value_t*)malloc(sizeof(value_t));
   value->next = NULL;
   return value;
@@ -98,11 +100,11 @@ void print_value_chain(value_t* value){
     if(value->type == VALUE_TYPE_STRING){
       printf("%s ", value->string);
     }else if(value->type == VALUE_TYPE_NUMBER){
-      printf("%ld ", value->number);
+      printf("%lld ", value->number);
     }else if(value->type == VALUE_TYPE_IDENTIFIER){
       printf("%s ", value->string);
     }else if(value->type == VALUE_TYPE_OPCODE){
-      printf("%ld ", value->number);
+      printf("%lld ", value->number);
     }else{
       printf("<Value printout of this element not implemented> ");
     }
@@ -160,16 +162,16 @@ void register_header_entry(value_t* val){
   if(0 == strcmp(val->string, "#out")) {
     s = std::string("p_") + val->next->string + std::string("_output");
     output_identifiers.push_back(std::make_pair(s, val->next->next->string));
-  }else if(0 == strcmp(val->string, "#in")) { 
+  }else if(0 == strcmp(val->string, "#in")) {
     s = std::string("p_") + val->next->string + std::string("_input");
     input_identifiers.push_back(std::make_pair(s, val->next->next->string));
   }else if(0 == strcmp(val->string, "#uniform")) {
     value_t* curr = val->next;
     uniform_declaration_t decl;
-    decl.set = curr->number;
+    decl.set = (unsigned int)curr->number;
 
     curr = curr->next;
-    decl.binding = curr->number;
+    decl.binding = (unsigned int)curr->number;
 
     curr = curr->next;
     decl.type = curr->string;
@@ -180,7 +182,7 @@ void register_header_entry(value_t* val){
 
     uniform_declarations.push_back(decl);
   }
-  
+
   register_identifier(s.c_str());
 
   destroy_value_tree(val);
@@ -207,7 +209,7 @@ void add_int_to_binary(uint32_t integer){
 }
 
 void add_ints_to_binary(std::initializer_list<uint32_t> l){
-  for(int i = 0; i < l.size(); i++){
+  for(unsigned int i = 0; i < l.size(); i++){
     add_int_to_binary(*(std::begin(l) + i));
   }
 }
@@ -215,8 +217,8 @@ void add_ints_to_binary(std::initializer_list<uint32_t> l){
 void add_string(const char* string){
   int len = strlen(string) + 1; // Include NULL-character
   int num_ints = (len + 3)/4; // Four characters in a word
-  
-  
+
+
   for(int i = 0; i < num_ints - 1; i++){
     add_int_to_binary(*((uint32_t*)(string + 4 * i)));
   }
@@ -247,19 +249,19 @@ void output_binary(value_t* val, int* size){
     output_binary(val->next, size);
 
     if(val->type == VALUE_TYPE_STRING){
-      
+
       *size += (strlen(val->string) + 1 + 3)/4; // Ensure 0-character is counted
       add_string(val->string);
-      
+
     }else if(val->type == VALUE_TYPE_NUMBER){
-      
+
       *size += 1;
       add_int_to_binary((uint32_t)val->number);
-      
+
     }else if(val->type == VALUE_TYPE_IDENTIFIER){
       *size += 1;
       add_int_to_binary(identifiers[val->string]);
-      
+
     }else if(val->type == VALUE_TYPE_OPCODE){
       // Handle this separately, as this will be on the start of the chain and
       // everything else is backwards
@@ -276,9 +278,9 @@ void add_header_to_binary(value_t* header){
   int is_fragment_shader = 0 == strcmp(header->string, "FRAGMENT_SHADER");
   int is_vertex_shader = 0 == strcmp(header->string, "VERTEX_SHADER");
 
-  
+
   if(is_fragment_shader || is_vertex_shader){
-    
+
     // capability Shader
     add_int_to_binary((2 << 16) | 17);
     add_int_to_binary(1);
@@ -293,7 +295,7 @@ void add_header_to_binary(value_t* header){
     add_identifier_definition(import_id_name.c_str());
 
     add_int_to_binary(identifiers[import_id_name]);
-    
+
     add_string(imp);
 
     // memory_model Logical GLSL450
@@ -312,7 +314,7 @@ void add_header_to_binary(value_t* header){
       register_identifier("_FragCoord");
     } else if(is_vertex_shader){
       add_int_to_binary(0); // Vertex
-      
+
       register_identifier("_Position");
       register_identifier("_PointSize");
       register_identifier("_ClipDistance");
@@ -321,18 +323,18 @@ void add_header_to_binary(value_t* header){
       printf("Entry point shader type not defined for header %s\n", header->string);
       exit(-1);
     }
-    
+
     std::string entry_name = "main";
     register_identifier(entry_name.c_str());
     add_identifier_definition(entry_name.c_str());
     add_int_to_binary(identifiers[entry_name]);
     add_string("main");
-    
-    for(int i = 0; i < input_identifiers.size(); i++){
+
+    for(unsigned int i = 0; i < input_identifiers.size(); i++){
       add_int_to_binary(identifiers[input_identifiers[i].second]);
       size++;
     }
-    for(int i = 0; i < output_identifiers.size(); i++){
+    for(unsigned int i = 0; i < output_identifiers.size(); i++){
       add_int_to_binary(identifiers[output_identifiers[i].second]);
       size++;
     }
@@ -356,7 +358,7 @@ void add_header_to_binary(value_t* header){
       printf("Interface list not defined for header %s\n", header->string);
       exit(-1);
     }
-    
+
     (*binary)[size_index] |= size << 16;
 
     if(is_fragment_shader){
@@ -370,7 +372,7 @@ void add_header_to_binary(value_t* header){
       add_int_to_binary(identifiers["_FragCoord"]);
       add_int_to_binary(11);
       add_int_to_binary(15);
-      
+
     }else if(is_vertex_shader){
 
       // decorate _Position Builtin Position
@@ -378,10 +380,10 @@ void add_header_to_binary(value_t* header){
 
       // decorate _PointSize BuiltIn PointSize
       add_ints_to_binary({(4 << 16) | 71, identifiers["_PointSize"], 11, 1});
-      
+
       // decorate _ClipDistance BuiltIn ClipDistance
       add_ints_to_binary({(4 << 16) | 71, identifiers["_ClipDistance"], 11, 3});
-      
+
       // decorate _CullDistance BuiltIn CullDistance
       add_ints_to_binary({(4 << 16) | 71, identifiers["_CullDistance"], 11, 4});
     }
@@ -389,7 +391,7 @@ void add_header_to_binary(value_t* header){
     // decorate <attribute> Location <index>
     std::vector<std::pair<std::string, std::string> >* iovs[2] = {&input_identifiers, &output_identifiers};
     for(int j = 0; j < 2; j++){
-      for(int i = 0; i < iovs[j]->size(); i++){
+      for(unsigned int i = 0; i < iovs[j]->size(); i++){
 	add_int_to_binary((4 << 16) | 71);
 	add_int_to_binary(identifiers[(*iovs[j])[i].second]);
 	add_int_to_binary(30);
@@ -398,7 +400,7 @@ void add_header_to_binary(value_t* header){
     }
 
     // Appropriately decorate uniforms (and ensure dependencies are declared)
-    for(int i = 0; i < uniform_declarations.size(); i++){
+    for(unsigned int i = 0; i < uniform_declarations.size(); i++){
       register_identifier((std::string("$") + uniform_declarations[i].type).c_str());
       register_identifier((std::string("p_$") + uniform_declarations[i].type + "_uniform").c_str());
       register_identifier((std::string("p_") + uniform_declarations[i].type + "_uniform").c_str());
@@ -414,7 +416,7 @@ void add_header_to_binary(value_t* header){
 void declare_necessary_implicit_ids()
 {
   implicit_ids_init();
-  
+
   std::map<std::string, unsigned int>::iterator map_it = identifiers.begin();
 
   for(; map_it != identifiers.end(); map_it++){
@@ -424,7 +426,7 @@ void declare_necessary_implicit_ids()
       if(!output_if_implicit((*map_it).first)){
 	printf("Identifier %s was not defined, and is not an implicit type\n", (*map_it).first.c_str());
       }
-      
+
     }
   }
 }
@@ -445,8 +447,8 @@ static int should_reset = 0;
 
 void reset_parser(){
   should_reset = 0;
-  
-  for(int i = 0; i < opcodes.size(); i++){
+
+  for(unsigned int i = 0; i < opcodes.size(); i++){
     destroy_value_tree(opcodes[i]);
   }
   opcodes.clear();
@@ -471,7 +473,7 @@ void reset_parser(){
 
 void declare_io_variables(){
   // variable <type> <identifier> Input
-  for(int i = 0; i < input_identifiers.size(); i++){
+  for(unsigned int i = 0; i < input_identifiers.size(); i++){
     add_int_to_binary((4 << 16) | 59);
     add_int_to_binary(identifiers[input_identifiers[i].first]);
     add_int_to_binary(identifiers[input_identifiers[i].second]);
@@ -479,17 +481,17 @@ void declare_io_variables(){
   }
 
   // variable <type> <identifier> Output
-  for(int i = 0; i < output_identifiers.size(); i++){
+  for(unsigned int i = 0; i < output_identifiers.size(); i++){
     add_int_to_binary((4 << 16) | 59);
     add_int_to_binary(identifiers[output_identifiers[i].first]);
     add_int_to_binary(identifiers[output_identifiers[i].second]);
     add_int_to_binary(3);
   }
 
-  for(int i = 0; i < uniform_declarations.size(); i++){
+  for(unsigned int i = 0; i < uniform_declarations.size(); i++){
     std::string var_type = std::string("p_$") + uniform_declarations[i].type + "_uniform";
     std::string final_type = std::string("p_") + uniform_declarations[i].type + "_uniform";
-    
+
     // variable <type> <name> Uniform
     add_ints_to_binary({(4 << 16) | 59, get_identifier_number(var_type.c_str()),
 	  get_identifier_number((uniform_declarations[i].name).c_str()),
@@ -507,17 +509,17 @@ namespace spurv{
       reset_parser();
     }
     should_reset = 1;
-    
+
     yyin = fopen(file_name, "r");
     if(yyin == NULL){
       printf("Could not find file %s\n", file_name);
       exit(-1);
     }
-  
+
     yyparse();
 
     fclose(yyin);
-  
+
     binary = &spirv;
 
     add_int_to_binary(0x07230203); // Magic Number
@@ -534,8 +536,8 @@ namespace spurv{
       declare_necessary_implicit_ids();
       declare_io_variables();
     }
-  
-    for(int i = 0; i < opcodes.size(); i++){
+
+    for(unsigned int i = 0; i < opcodes.size(); i++){
       if(!header_is_defined && opcodes[i]->number == 71){ // Decorates, after these are set, we can declare types
 	declare = 1;
       }else if(declare){
@@ -544,7 +546,7 @@ namespace spurv{
       }
 
       int base = binary->size();
-      add_int_to_binary(opcodes[i]->number); // We add size when all sizes are known
+      add_int_to_binary((unsigned int)opcodes[i]->number); // We add size when all sizes are known
       int size = 1;
       int *p_size = &size;
       output_binary(opcodes[i], p_size);

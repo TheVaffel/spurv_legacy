@@ -8,7 +8,7 @@
 
 #include <spurv.h>
 
-// #define UNIFORM_SHADER
+#define UNIFORM_SHADER
 
 using namespace std;
 
