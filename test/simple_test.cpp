@@ -1,5 +1,5 @@
 #include <vector>
-#include <spurv.h>
+#include <spurv.hpp>
 
 int main(){
   std::vector<uint32_t> spirv_frag;

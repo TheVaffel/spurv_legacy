@@ -2,11 +2,11 @@
 #define _CRT_SECURE_NO_DEPRECATE
 #endif
 
-#include <Winval.h>
-#include <Wingine.h>
+#include <Winval.hpp>
+#include <Wingine.hpp>
 #include <iostream>
 
-#include <spurv.h>
+#include <spurv.hpp>
 
 #define UNIFORM_SHADER
 

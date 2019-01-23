@@ -6,7 +6,7 @@
 #include <string.h>
 #include <string>
 
-#include <spurv.h>
+#include <spurv.hpp>
 
 // #define DEBUG
 
