@@ -12,22 +12,27 @@ set(BISON_INPUT ${YACC_FILE})
 set(BISON_OUTPUT ${SRC_DIR}/y.tab.cpp)
 add_custom_command(OUTPUT ${BISON_OUTPUT}
                    COMMAND bison -d ${BISON_INPUT}
-                                 -o ${BISON_OUTPUT})
+                   -o ${BISON_OUTPUT}
+		   DEPENDS ${BISON_INPUT})
 
 set(LEX_FILE ${SRC_DIR}/spurv.l)
 set(FLEX_INPUT ${LEX_FILE})
 set(FLEX_OUTPUT ${SRC_DIR}/lex.yy.cpp)
-add_custom_command(OUTPUT ${FLEX_OUTPUT}
-                   COMMAND flex -o${FLEX_OUTPUT} ${FLEX_INPUT})
 
-set(LEX_GENERATOR_SCRIPT lex_file_generator.py)
+set(LEX_GENERATOR_SCRIPT ${SPURV_ROOT}/lex_file_generator.py)
 add_custom_command(OUTPUT ${LEX_FILE}
-                   COMMAND python3 ${LEX_GENERATOR_SCRIPT} > ${LEX_FILE})
+  COMMAND python3 ${LEX_GENERATOR_SCRIPT} > ${LEX_FILE}
+  WORKING_DIRECTORY ${SPURV_ROOT})
 
-set(YACC_GENERATOR_SCRIPT yacc_file_generator.py)
+add_custom_command(OUTPUT ${FLEX_OUTPUT}
+  COMMAND flex -o${FLEX_OUTPUT} ${FLEX_INPUT}
+  DEPENDS ${FLEX_INPUT})
+
+set(YACC_GENERATOR_SCRIPT ${SPURV_ROOT}/yacc_file_generator.py)
 add_custom_command(OUTPUT ${YACC_FILE}
                    COMMAND python3 ${YACC_GENERATOR_SCRIPT}
-                     > ${YACC_FILE})
+                   > ${YACC_FILE}
+		   WORKING_DIRECTORY ${SPURV_ROOT})
 
 # Include our own version of unistd.h
 if(WIN32)
