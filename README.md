@@ -13,11 +13,19 @@ A small comparison to Khrono's specification:
 
 ## Build
 
-The build is only tested on Linux. The Makefile should do everything necessary. Dependencies:
+Building on Linux and Windows have these dependencies:
+- CMake
 - Python3
 - Flex
 - Yacc
 - g++ (std C++11)
+
+The building should just be a matter of a normal CMake build:
+
+`$ mkdir build`
+`$ cd build`
+`$ cmake ..`
+`$ make`
 
 In addition, an example is provided, one that makes use of [HConLib](https://github.com/TheVaffel/HConLib)'s Wingine framework. Thus, this is required for the example ("test"). A small modification of the HCONLIB_ROOT path in the test's Makefile should make everything work when the dependencies are in place.
 
