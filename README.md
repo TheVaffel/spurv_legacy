@@ -22,10 +22,12 @@ Building on Linux and Windows have these dependencies:
 
 The building should just be a matter of a normal CMake build:
 
-`$ mkdir build`
-`$ cd build`
-`$ cmake ..`
-`$ make`
+```
+$ mkdir build
+$ cd build
+$ cmake ..
+$ make
+```	
 
 In addition, an example is provided, one that makes use of [HConLib](https://github.com/TheVaffel/HConLib)'s Wingine framework. Thus, this is required for the example ("test"). A small modification of the HCONLIB_ROOT path in the test's Makefile should make everything work when the dependencies are in place.
 

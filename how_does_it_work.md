@@ -35,7 +35,7 @@ When parsing the grammar, each line is considered one opcode, except for lines s
 
 Implicit IDs is a term for types and variables that the user can use without explicitly defining them. This includes common types like `float`, `vec3` and `mat4`, and built-in variables like the output position in the vertex shader (`_Position`). The implicit IDs are only included into the bytecode if the types / variables are actually used by the user code. The function `output_if_implicit` takes a string and outputs bytecode for defining it to the bytecode vector if it finds that it is an implicit type of some kind. Returns false otherwise.
 
-It works by checking if the string satisfies any of the implicit id name formats, and can thus choose the correct one automatically.
+It works by checking if the string satisfies any of the implicit id name formats, and can thus choose the correct one automatically. It will recursively check for / insert necessary dependencies.
 
 ## Glossary
 
