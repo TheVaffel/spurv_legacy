@@ -1,5 +1,11 @@
 # Spurv
 
+## Current Status of this Project
+
+It seems unlikely that development of this project will continue, hence, the repository is renamed to `spurv_legacy`. The reason is that I will focus on a new (and hopefully better) version of `spurv` based on a metaprogramming approach. 
+
+## Introduction
+
 Spurv is a language closely related to Khrono's [SPIR-V assembly syntax](https://github.com/KhronosGroup/SPIRV-Tools/blob/master/syntax.md), but with some changes aimed at making SPIR-V easier to write by hand.
 
 A small comparison to Khrono's specification:
@@ -40,3 +46,4 @@ In addition, an example is provided, one that makes use of [HConLib](https://git
 Spurv means sparrow in Norwegian.
 
 It might be related, idk
+
