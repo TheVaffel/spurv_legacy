@@ -40,7 +40,8 @@ void implicit_ids_init(){
     // {"float", {22, NULL, 1, {32}}}, // This one really messes up when used with float32 (not allowed)
     {"float32", {E_TYPE, 22, NULL, 1, {32}}},
     {"float64", {E_TYPE, 22, NULL, 1, {64}}},
-    // -1 in argument shall be substituted by dependency identifier
+    // -1 in argument shall be substituted by dependency identifier,
+    // although this isn't always necessary as each output class has their own "write_"-function
     // We use copy_and_store_string to make these homogenous with the pointer versions added later
     {"vec2", {E_TYPE, 23, copy_and_store_string("float32"), 2, {-1, 2}}},
     {"vec3", {E_TYPE, 23, copy_and_store_string("float32"), 2, {-1, 3}}},
@@ -77,25 +78,14 @@ void implicit_ids_init(){
   }
 }
 
-char* get_array_type(std::string id) {
+char* get_array_type(std::string& id) {
   int i = 0;
   while(id[i++] != '_');
   int j = i;
   while(id[++j] != '_');
 
-	/*
-  char cc[j - i + 1];
-
-  int a = 0;
-  for(int k = i; k < j; k++){
-    cc[a++] = id[k];
-  }
-  */
-
-	// Double check this?
-	std::string str2 = id.substr(i, j - i);
-
-  // cc[j - i] = 0;
+  // Double check this?
+  std::string str2 = id.substr(i, j - i);
 
   return copy_and_store_string(str2.c_str());
 }
@@ -129,7 +119,7 @@ void create_array_definition(std::string id, id_definition_data_t* d){
   d->additional_arguments[2] = get_identifier_number(len_const_str);
 }
 
-void create_pointer_definition(std::string id, id_definition_data_t* d){
+void create_pointer_definition(std::string& id, id_definition_data_t* d){
   int u = id.find_first_of('_');
   int v = id.find_last_of('_');
 
@@ -152,7 +142,7 @@ void create_pointer_definition(std::string id, id_definition_data_t* d){
   d->additional_arguments[1] = -1;
 }
 
-void create_constant_definition(std::string id, id_definition_data_t* data){
+void create_constant_definition(std::string& id, id_definition_data_t* data){
   data->opcode = 43; // constant
 
   float f;
@@ -175,6 +165,32 @@ void create_constant_definition(std::string id, id_definition_data_t* data){
     data->additional_arguments[0] = *((uint32_t*)&f);
     break;
   }
+}
+
+void create_function_type_definition(std::string& id, id_definition_data_t* data) {
+  data->type = E_FUNCTION_TYPE;
+  data->opcode = 33;
+
+  int first_result_type_letter_index = strlen("$fntype_");
+  int second_underscore = id.find('_', first_result_type_letter_index);
+  std::string return_type = id.substr(first_result_type_letter_index,
+				      second_underscore - first_result_type_letter_index);
+
+  // Add all mentioned types as additional arguments
+  uint32_t arg_types[IMPLICIT_TYPE_MAX_NUM_ADDITIONAL_ARGUMENTS];
+  int num_args = 0;
+  
+  int i = second_underscore;
+  int j = id.find('_', second_underscore + 1);
+  while(j != std::string::npos) {
+    std::string next_type = id.substr(i + 1, j - i - 1);
+    arg_types[num_args++] = get_identifier_number(next_type.c_str());
+  }
+
+  data->num_additional_arguments = num_args;
+
+  // We assume argument types are declared (they are, as of now), and let return type be only dependency
+  data->dependency = copy_and_store_string(reurn_type.c_str());
 }
 
 // For arrays
@@ -235,6 +251,19 @@ void write_var_definition(id_definition_data_t& d, const char* name){
   }
 }
 
+void write_function_type(id_definition_data_t& d, const char* name) {
+  int size = d.num_additional_arguments + 3; // Argument types + return type + result id + metablock
+
+  add_int_to_binary((size << 16) | d.opcode);
+  add_int_to_binary(get_identifier_number(name));
+  add_int_to_binary(get_identifier_number(d.dependency)); // Return type
+
+  // Argument types
+  for(int i = 0; i < d.num_additional_arguments; i++) {
+    add_int_to_binary(d.additional_arguments[i]);
+  }
+}
+
 
 // Returns true if everything is ok
 bool ensure_dependency_is_in_place(id_definition_data_t& d){
@@ -244,7 +273,7 @@ bool ensure_dependency_is_in_place(id_definition_data_t& d){
     if((!dependency_will_be_explicitly_defined)
        && !dependency_is_defined){
 
-      if(!output_if_implicit(d.dependency)){
+      if(!output_definition_if_implicit(d.dependency)){
 	printf("Could not output implicit dependency %s\n", d.dependency);
 	exit(-1);
       }
@@ -256,7 +285,7 @@ bool ensure_dependency_is_in_place(id_definition_data_t& d){
   return true;
 }
 
-void output_array_length_constant(std::string s){
+void output_array_length_constant(std::string& s){
   char len_str[32];
   const char* len_format = "i%d";
   sprintf(len_str, len_format, get_array_length(s));
@@ -267,7 +296,7 @@ void output_array_length_constant(std::string s){
   output_implicit(ds, d);
 }
 
-void output_implicit(std::string identifier, id_definition_data_t& data){
+void output_implicit(std::string& identifier, id_definition_data_t& data){
   // printf("Ensuring dependency of \"%s\"\n", identifier.c_str());
   if(!ensure_dependency_is_in_place(data)){
     printf("Defining dependencies of an implicitly defined id not allowed after use of implicit id (you cannot define %s after reference of %s)\n", data.dependency, identifier.c_str());
@@ -294,6 +323,8 @@ void output_implicit(std::string identifier, id_definition_data_t& data){
   case E_CONSTANT:
     write_constant_definition(data, identifier.c_str());
     break;
+  case E_FUNCTION_TYPE:
+    write_function_type(data, identifier.c_str());
   default:
     printf("SPURV: Writing of implicit id type is not implemented\n");
     exit(-1);
@@ -302,11 +333,11 @@ void output_implicit(std::string identifier, id_definition_data_t& data){
   add_identifier_definition(identifier.c_str());
 }
 
-bool is_default_implicit(std::string s){
+bool is_default_implicit(std::string& s){
   return default_implicit_ids.find(s) != default_implicit_ids.end();
 }
 
-bool is_only_digits(std::string s){
+bool is_only_digits(std::string& s){
   for(unsigned int i = 0; i < s.length(); i++){
     if(s[i] > '9' || s[i] < '0'){
       return false;
@@ -316,7 +347,7 @@ bool is_only_digits(std::string s){
   return true;
 }
 
-bool is_array_implicit(std::string s){
+bool is_array_implicit(std::string& s){
   int u = s.find_first_of('_');
   int v = s.find_last_of('_');
   if(u > -1 && v > u && s.substr(0, 4) == "arr_"){
@@ -333,7 +364,7 @@ bool is_array_implicit(std::string s){
   return false;
 }
 
-bool is_simple_struct_implicit(std::string s){
+bool is_simple_struct_implicit(std::string& s){
   if(s[0] == '$' && is_default_implicit(s.substr(1))){
     return true;
   }
@@ -341,7 +372,14 @@ bool is_simple_struct_implicit(std::string s){
   return false;
 }
 
-bool is_pointer_implicit(std::string s){
+bool is_function_type_implicit(std::string& s) {
+  if (s.substr(0, strlen("$fntype_")) == "$fntype_") {
+    return true;
+  }
+  return false;
+}
+
+bool is_pointer_implicit(std::string& s){
   int u = s.find_first_of('_');
   int v = s.find_last_of('_');
 
@@ -372,7 +410,7 @@ bool is_pointer_implicit(std::string s){
   return false;
 }
 
-bool is_constant_implicit(std::string s){
+bool is_constant_implicit(std::string& s){
   if(s[0] == 'u' || s[0] == 'i'){
     std::string ns = s.substr(1);
     return is_only_digits(ns);
@@ -394,7 +432,10 @@ bool is_constant_implicit(std::string s){
   }
 }
 
-bool output_if_implicit(std::string s){
+ 
+ 
+
+bool output_definition_if_implicit(std::string& s){
 
   id_definition_data_t d;
   if(is_default_implicit(s)){
@@ -417,10 +458,17 @@ bool output_if_implicit(std::string s){
 
     create_simple_struct_definition(s, &d);
     output_implicit(s, d);
+  } else if(is_function_type_implicit(s)) {
+
+    // Here, we assume the argument types are already defined
+    // so we only need one dependency, for result type
+    create_function_type_definition(s, &d);
+    output_implicit(s, d);
   } else {
     //printf("%s not found as an implicit\n", s.c_str());
     return false;
   }
+  
   return true;
 }
 

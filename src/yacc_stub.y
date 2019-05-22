@@ -7,6 +7,7 @@ void register_identifier_definition(value_t* opcode);
 
  int result_indices[] = {
   %__SEP // This makes sure we can interleave stub code and generated code
+  // in yacc_file_generator.py
  };
 
 %}
@@ -18,10 +19,15 @@ void register_identifier_definition(value_t* opcode);
 %token NUMBER
 %token STRING
 %token EQUALS
+%token FUNCTION_START_KEYWORD
+%token FUNCTION_END_KEYWORD
 %token HEADER_KEYWORD
 %token HEADER_CLASS
 %token HEADER_IO_KEYWORD
 %token HEADER_UNIFORM_KEYWORD
+%token LEFT_PARENTHESIS
+%token RIGHT_PARENTHESIS
+%token COMMA_SEPERATOR
 
 %__SEP
 
@@ -59,12 +65,45 @@ header_subentry: io_keyword_reference identifier_reference identifier_reference 
       }; 
 
 body: instruction_list {} 
-      | 
-      instruction_list NEWLINE {}; 
+    | instruction_list NEWLINE {}
+    | function_definition_list {}
+    | function_definition_list NEWLINE {};
+
+function_list: function_definition_list NEWLINE function_definition {}
+             | function_definition {} ;
+
+// #fun <return type> <function name> (<type1> <arg1>, <type2> <arg2> ... )
+function_definition: function_definition_header NEWLINE instruction_list function_definition_end
+                   {
+		     $1->function_definition->instructions = get_and_clear_opcodes();
+		     add_function_definition($1->function_definition);
+		   }
+
+function_definition_header: FUNCTION_START_KEYWORD type_identifier identifier_reference LEFT_PARANTHESIS function_definition_argument_list RIGHT_PARANTHESIS
+                          {
+			    function_definition_t* fnd = get_new_value($3->string, $2->string);
+			    fnd->argument_list = function_definition_argument_list;
+			    $$ = construct_value_function_definition(fnd);
+			  }
+
+function_definition_argument_list: function_definition_argument_list COMMA_SEPERATOR function_definition_argument
+                                 {
+				   $$ = $3;
+				   $3->next->next = $1;
+				 } |
+				 function_definition_argument {$$ = $1};
+
+function_definition_argument: type_identifier identifier_reference
+                            {
+			      $$ = $2;
+			      $2->next = $1;
+			    } | { $$ = NULL;};
+
+
+function_definition_end: FUNCTION_END_KEYWORD {};
 
 instruction_list: instruction_list NEWLINE instruction {} 
-      | 
-      instruction {} ; 
+                | instruction {} ; 
 
 instruction: opcode argument_list { 
           $1->next = $2; 
@@ -121,6 +160,7 @@ io_keyword_reference: HEADER_IO_KEYWORD {
 uniform_keyword_reference: HEADER_UNIFORM_KEYWORD { 
           $$ = construct_value_string(strdup(yytext), NULL); 
       };
+type_identifier: identifier_reference {$$ = $1};
 
 opcode:
 %__SEP

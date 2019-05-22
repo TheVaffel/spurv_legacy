@@ -9,6 +9,7 @@ typedef enum e {
   E_ARRAY,
   E_POINTER,
   E_CONSTANT,
+  E_FUNCTION_TYPE,
 } id_type;
 
 typedef struct s {
@@ -52,4 +53,4 @@ bool output_if_array_implicit(std::string);
 bool output_if_pointer_implicit(std::string);
 bool output_if_constant_implicit(std::string);
 
-bool output_if_implicit(std::string);
+bool output_definition_if_implicit(std::string);

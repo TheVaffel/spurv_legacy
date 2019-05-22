@@ -64,6 +64,14 @@ value_t* construct_value_identifier(char* str, value_t* next){
   return v;
 }
 
+value_t* construct_value_function_definition(function_definition_t* fnd) {
+  value_t* v = get_new_value();
+  v->function_definition = fnd;
+  v->type = VALUE_TYPE_FUNCTION_DEFINITION;
+  v->next = NULL;
+  return v;
+}
+
 int get_value_in_chain(value_t** val, int i, value_t* curr){
   if(!curr){
     return 0;
@@ -111,14 +119,32 @@ void print_value_chain(value_t* value){
   }
 }
 
-std::vector<value_t*> opcodes;
+std::vector<value_t*>* instructions;
 
-void add_opcode(value_t* opcode){
-  if(opcode->type != VALUE_TYPE_OPCODE){
+void add_instruction(value_t* instruction){
+  if(instruction->type != VALUE_TYPE_OPCODE){
     printf("Tried to add non-opcode to opcode list\n");
     exit(-1);
   }
-  opcodes.push_back(opcode);
+  instructions->push_back(instruction);
+}
+
+std::vector<value_t*>* get_and_clear_instructions() {
+  std::vector<value_t*>* temp = instructions;
+  instructions = new std::vector<value_t*>;
+  return temp;
+}
+
+std::vector<function_definition_t*> function_definitions;
+
+function_definition_t* get_new_function_definition(const char* name, const char* return_type) {
+  function_definition_t* fnd = new function_definition_t;
+  fnd->name = name;
+  fnd->return_type = return_type;
+  
+}
+void add_function_definition(function_definition_t* function_definition) {
+  function_definitions.push_back(function_definition);
 }
 
 void add_identifier_definition(const char* str){
@@ -141,6 +167,7 @@ static uint32_t identifier_num = 1;
 // Note: Will not register if already registered, making identifier handling somewhat easier
 void register_identifier(const char* string){
   identifiers.insert(std::pair<std::string, uint32_t>(std::string(string), identifier_num++));
+  
 #ifdef DEBUG
   printf("Registered %s with key %d\n", string, identifiers[string]);
 #endif
@@ -244,6 +271,22 @@ uint32_t get_binary_size(){
   return binary->size();
 }
 
+void output_instruction_binary(value_t* opcode) {
+#ifdef DEBUG
+  if(opcode->type != VALUE_TYPE_OPCODE) {
+    printf("Tried to pass non-opcode value to output_instruction_binary\n");
+  }
+#endif // DEBUG
+  
+  int base = binary->size();
+  add_int_to_binary((unsigned int)opcode->number);
+  int size = 1;
+  int *p_size = &size;
+  output_binary(opcode->next, p_size);
+
+  (*binary)[base] |= size << 16;
+}
+
 void output_binary(value_t* val, int* size){
   if(val){
     output_binary(val->next, size);
@@ -265,6 +308,14 @@ void output_binary(value_t* val, int* size){
     }else if(val->type == VALUE_TYPE_OPCODE){
       // Handle this separately, as this will be on the start of the chain and
       // everything else is backwards
+      
+#ifdef DEBUG
+      printf("[SPURV ERROR]: Passed VALUE_TYPE_OPCODE to output_binary(), which is illegal\n");
+      exit(-1);
+#endif // DEBUG
+    } else if(val->type == VALUE_TYPE_FUNCTION_DEFINITION) {
+      output_function_definition(val->function_definition);
+    
     }else if(val->type == VALUE_TYPE_IDENTIFIER_DEFINITION){
       *size += 1;
       add_identifier_definition(val->string);
@@ -423,7 +474,7 @@ void declare_necessary_implicit_ids()
     if(!is_identifier_to_be_defined((*map_it).first.c_str()) &&
        !is_identifier_defined((*map_it).first.c_str())){
 
-      if(!output_if_implicit((*map_it).first)){
+      if(!output_definition_if_implicit((*map_it).first)){
 	printf("Identifier %s was not defined, and is not an implicit type\n", (*map_it).first.c_str());
       }
 
@@ -448,10 +499,11 @@ static int should_reset = 0;
 void reset_parser(){
   should_reset = 0;
 
-  for(unsigned int i = 0; i < opcodes.size(); i++){
-    destroy_value_tree(opcodes[i]);
+  for(unsigned int i = 0; i < instructions->size(); i++){
+    destroy_value_tree(instructions->[i]);
   }
-  opcodes.clear();
+  instructions->clear();
+  delete instructions;
 
   defined_identifiers.clear();
   identifiers.clear();
@@ -516,6 +568,8 @@ namespace spurv{
       exit(-1);
     }
 
+    instructions = new std::vector<value_t*>;
+
     yyparse();
 
     fclose(yyin);
@@ -537,26 +591,25 @@ namespace spurv{
       declare_io_variables();
     }
 
-    for(unsigned int i = 0; i < opcodes.size(); i++){
-      if(!header_is_defined && opcodes[i]->number == 71){ // Decorates, after these are set, we can declare types
+    for(unsigned int i = 0; i < instructions->size(); i++){
+      if(!header_is_defined &&
+	 !is_only_using_functions &&
+	 instructions->[i]->number == 71){ // Decorates, after these are set, we can declare types
+	
 	declare = 1;
+	
       }else if(declare){
+	
 	declare_necessary_implicit_ids();
 	declare = 0;
+	
       }
-
-      int base = binary->size();
-      add_int_to_binary((unsigned int)opcodes[i]->number); // We add size when all sizes are known
-      int size = 1;
-      int *p_size = &size;
-      output_binary(opcodes[i], p_size);
-
-      // Include size
-      (*binary)[base] |= size << 16;
+	
+      output_instruction_binary((*instructions)[i]);
     }
 
     (*binary)[bound_index] = identifier_num;
-
+      
 #ifdef DEBUG
     for(int i = 0; i < binary->size(); i++){
       if((*binary)[i] >= 1 << 16){
@@ -567,8 +620,7 @@ namespace spurv{
     }
 #endif // DEBUG
   }
-
-
+  
   void clear_spurv(){
     reset_parser();
     clear_implicit_id_table();

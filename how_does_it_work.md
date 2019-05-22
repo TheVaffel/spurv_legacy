@@ -39,4 +39,7 @@ It works by checking if the string satisfies any of the implicit id name formats
 
 ## Glossary
 
-- Simple struct: SPIR-V struct with only one member
+- Implicit type: Type that does not have to be declared by the user. Includes common types like float32, vec3 and mat4, and also constructions like uniform pointers (like p_mat4_uniform) or arrays (e.g. arr_float32_4, where 4 is the number of elements in the array)
+- Default implicit type: Type that is defined by default, and not constructed on the fly. Default types include float and int types, vectors and matrices.
+- Simple struct: SPIR-V struct with only one member. Type names for simple structs are of the form `$<type>` where <type> is a default other type (just e.g. a matrix or a float, not an array, pointer or other struct etc.)
+- Function types include return type and argument types for a function. It's id looks like this: `$fntype_<return_type>_<argtype_1>_<argtype_2>..._<argtype_n>`

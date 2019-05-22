@@ -24,7 +24,7 @@ void output_decorate_uniform(uniform_declaration_t ud){
     // member_decorate $<type> 0 Offset 0
     add_ints_to_binary({(5 << 16) | 72, struct_type_num, 0, 35, 0});
   } else {
-    printf("Support for uniforms of type %s is not yet supported\n", ud.type.c_str());
+    printf("Support for uniforms of type %s is not yet implemented\n", ud.type.c_str());
   }
 
   // decorate <name> DescriptorSet <set>
